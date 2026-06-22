@@ -1,28 +1,44 @@
-# 🗄️ Cấu trúc Cơ sở dữ liệu (Database Schema)
+# Cấu trúc Database (Database Schema)
 
-Dự án sử dụng cơ sở dữ liệu quan hệ (PostgreSQL/MySQL) để lưu trữ State và History, độc lập với Database của Spring Boot (hoặc chung CSDL nhưng khác Schema).
+Dự án có thể sử dụng PostgreSQL (Relational) hoặc MongoDB (NoSQL). Dưới đây là thiết kế theo hướng Relational (PostgreSQL) - phù hợp với kiến trúc phòng khám chung.
 
-## Bảng `chat_session`
-Lưu trữ phiên chat của người dùng.
-- `id` (UUID, PK)
-- `patient_id` (BIGINT, Nullable - Nếu khách vãng lai)
-- `title` (VARCHAR 255) - Tự động tạo tóm tắt từ tin nhắn đầu tiên.
-- `created_at` (TIMESTAMP)
-- `updated_at` (TIMESTAMP)
+## 1. Table `chat_sessions`
+Lưu trữ thông tin về một phiên chat của người dùng.
 
-## Bảng `chat_message`
-Lưu từng bong bóng chat trong session.
-- `id` (BIGINT, PK, Auto Increment)
-- `session_id` (UUID, FK -> chat_session)
-- `role` (ENUM: 'user', 'assistant', 'system', 'tool')
-- `content` (TEXT)
-- `tool_calls` (JSONB) - Lưu dữ liệu log nếu có gọi hàm.
-- `created_at` (TIMESTAMP)
+| Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+|---|---|---|---|
+| `id` | UUID | Primary Key | ID của phiên chat |
+| `patient_id` | UUID | Nullable, FK | Liên kết đến Patient Service nếu user đã đăng nhập |
+| `device_id` | VARCHAR | Nullable | ID thiết bị cho guest user |
+| `status` | VARCHAR | Default 'active' | Trạng thái (`active`, `closed`) |
+| `summary` | TEXT | Nullable | Tóm tắt nội dung phiên chat (dùng cho analytics) |
+| `created_at` | TIMESTAMP | Default NOW() | |
+| `updated_at` | TIMESTAMP | Default NOW() | |
 
-## Bảng `chat_feedback`
-Thu thập phản hồi để fine-tune mô hình sau này.
-- `id` (BIGINT, PK)
-- `message_id` (BIGINT, FK -> chat_message)
-- `rating` (ENUM: 'thumbs_up', 'thumbs_down')
-- `reason` (TEXT)
-- `created_at` (TIMESTAMP)
+## 2. Table `chat_messages`
+Lưu trữ từng tin nhắn trong phiên.
+
+| Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+|---|---|---|---|
+| `id` | UUID | Primary Key | |
+| `session_id` | UUID | Foreign Key | Thuộc phiên chat nào |
+| `sender_type` | VARCHAR | Not Null | `user` (Bệnh nhân), `ai` (Bot), `system` (Hệ thống) |
+| `content` | TEXT | Not Null | Nội dung tin nhắn |
+| `intent` | VARCHAR | Nullable | Ý định được phân loại (VD: `book_appt`) |
+| `action_payload` | JSONB | Nullable | Dữ liệu dạng JSON nếu tin nhắn kích hoạt UI Action |
+| `created_at` | TIMESTAMP | Default NOW() | |
+
+## 3. Table `chat_feedbacks`
+Lưu trữ đánh giá của người dùng về câu trả lời của AI (Thumbs up / Thumbs down).
+
+| Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+|---|---|---|---|
+| `id` | UUID | Primary Key | |
+| `message_id` | UUID | Foreign Key | Đánh giá cho tin nhắn AI nào |
+| `rating` | INT | Not Null | 1 (Up), -1 (Down) |
+| `comment` | TEXT | Nullable | Lý do đánh giá |
+| `created_at` | TIMESTAMP | Default NOW() | |
+
+## 4. Bảng liên quan (Tham khảo từ các Microservice khác)
+- **Appointments:** `Appointment Service` quản lý, Chat Service chỉ gọi qua API, không lưu trực tiếp vào database này.
+- **Patients/Users:** `Patient Service` quản lý.

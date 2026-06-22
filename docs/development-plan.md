@@ -1,29 +1,35 @@
-# 📅 Kế hoạch Phát triển (Development Roadmap)
+# Kế hoạch Phát triển (Development Plan)
 
-Việc phát triển Microservice AI Chat sẽ được chia làm 6 giai đoạn (Phù hợp cho Luận văn/Đồ án).
+Dự án được chia làm 6 giai đoạn (Phases) để đảm bảo tiến độ và giảm thiểu rủi ro.
 
-## Phase 1: Setup Infrastructure (Tuần 1)
-- Cài đặt Ollama local, pull model `llama3.2:3b`.
-- Khởi tạo project FastAPI. Cấu hình CORS, Database (SQLAlchemy/Alembic).
+## Giai đoạn 1: Khởi tạo và Setup Cơ sở hạ tầng (Tuần 1)
+- Thiết lập thư mục dự án `clinic-ai-chat` (Sử dụng Spring Boot + Java 17).
+- Viết Dockerfile và Docker Compose (nếu cần).
+- Cài đặt Ollama local và tải các models (`llama3.2`, `qwen2.5-coder`).
+- Setup Database Schema (PostgreSQL/MongoDB).
 
-## Phase 2: Core Chat & WebSockets (Tuần 2)
-- Xây dựng API `/ws/chat` cho phép streaming text từ Ollama về Client.
-- Lưu trữ lịch sử tin nhắn vào Database.
-- Tích hợp UI Chat bên Patient Web / Mobile App để test streaming.
+## Giai đoạn 2: Tích hợp Local LLM (Tuần 1 - 2)
+- Cấu hình thư viện Langchain / LlamaIndex để giao tiếp với Ollama qua REST API.
+- Viết các function cơ bản để truyền prompt và nhận response.
+- Thử nghiệm system prompt cơ bản để đóng vai "Clinic AI".
 
-## Phase 3: Intent Classification & RAG (Tuần 3)
-- Cài đặt ChromaDB hoặc FAISS lưu trữ vector thông tin phòng khám (Giờ mở cửa, Bảng giá, Quy định).
-- Xây dựng Router phân loại câu hỏi (Hỏi thông tin tĩnh -> vào RAG).
+## Giai đoạn 3: Phát triển REST API & Database (Tuần 2)
+- Viết các API CRUD cho Chat Sessions và Chat Messages.
+- Lưu trữ lịch sử tin nhắn.
+- Áp dụng kỹ thuật nhớ (Memory/Context Window) để gởi kèm lịch sử chat vào mỗi prompt.
 
-## Phase 4: Function Calling & Tích hợp Backend (Tuần 4)
-- Viết các Tool Functions trong Python (gọi `httpx` sang Spring Boot).
-- Áp dụng logic trích xuất Entity (NER) từ câu chat của bệnh nhân để tự động điền form đặt lịch.
+## Giai đoạn 4: Tích hợp Microservices (Tool Calling) (Tuần 3)
+- Định nghĩa các "Tools" cho LLM (ví dụ: `check_appointments`, `get_doctors`).
+- Triển khai code gọi API sang `Appointment Service`, `Staff Service`, v.v.
+- Parse yêu cầu từ người dùng -> gọi Tool -> lấy kết quả -> đưa lại cho LLM để sinh câu trả lời tự nhiên.
 
-## Phase 5: Testing & Tuning (Tuần 5)
-- Thử nghiệm các ca sử dụng dị biệt (Edge cases).
-- Tinh chỉnh (Tune) System Prompts để giọng điệu thân thiện, tiếng Việt chuẩn xác hơn.
-- Xử lý lỗi khi Spring Boot Backend die.
+## Giai đoạn 5: Phát triển WebSocket & Streaming (Tuần 4)
+- Setup WebSocket Server.
+- Chuyển đổi luồng sinh text từ LLM thành dạng stream qua WebSocket.
+- Thiết kế cơ chế gửi `UI_ACTION` qua WebSocket để Client render UI tương ứng (ví dụ form đặt lịch).
 
-## Phase 6: Deployment (Tuần 6)
-- Dockerize FastAPI app.
-- Viết script `docker-compose.yml` chạy song song Backend, Frontend, FastAPI, Database và Ollama.
+## Giai đoạn 6: Kiểm thử, Tối ưu và Triển khai (Tuần 5)
+- Viết Unit Test cho các function chính.
+- Tối ưu hóa prompt để tránh LLM bị hallucination.
+- Xử lý các edge cases (ví dụ: người dùng chửi bậy, hỏi ngoài lề).
+- Viết tài liệu hướng dẫn triển khai cuối cùng.

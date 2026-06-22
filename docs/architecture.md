@@ -1,32 +1,79 @@
-# 🏛️ Kiến trúc & Luồng xử lý (Architecture & Workflow)
+# Kiến trúc AI Chat (thực tế đang triển khai)
 
-Dự án áp dụng kiến trúc **Event-driven Agentic Workflow** kết hợp Rule-based Intent Routing để khắc phục điểm yếu của LLM nhỏ (3B params).
+## 1. Mô hình Hybrid: Light RAG + Tool Calling
 
-## 1. Sơ đồ Kiến trúc Tổng quan (System Architecture)
+Hệ thống **không** dùng vector database phức tạp. Thay vào đó:
+
+| Lớp | Công nghệ | Dùng cho |
+|-----|-----------|----------|
+| **Light RAG** | Chunk markdown + keyword search | FAQ, quy trình, gợi ý triệu chứng (tĩnh) |
+| **Tool Calling** | LangChain + REST API backend | Bác sĩ, giá, dịch vụ, giờ trống, đăng ký (live) |
+| **LLM** | Ollama Llama 3.2 3B | Hiểu câu hỏi, chọn tool, tổng hợp câu trả lời |
 
 ```mermaid
 graph TD
-    Client[Mobile App / Web] -- WebSocket / REST --> FastAPI[FastAPI Server]
-    FastAPI -- Intent Classifier --> Router[Intent Router]
-    
-    Router -- Medical Advice --> RAG[RAG Pipeline]
-    Router -- Booking / Inquiry --> ToolNode[Function Calling Engine]
-    
-    RAG -- Query Vector --> ChromaDB[(Vector DB)]
-    ToolNode -- HTTP REST --> SpringBoot[Spring Boot Backend API]
-    
-    RAG --> Langchain[LangChain Agent]
-    ToolNode --> Langchain
-    
-    Langchain -- HTTP --> Ollama[Ollama Server - Llama 3.2 3B]
-    Ollama -- Stream Response --> FastAPI
-    FastAPI -- Stream Tokens --> Client
+    Client[Web / Mobile] -->|POST /chat/send| API[FastAPI ChatService]
+    API --> RAG[KnowledgeRetriever]
+    RAG --> KB[(knowledge/*.md)]
+    API --> LLM[LLMService + Ollama]
+    LLM -->|tool_calls| Tools[LangChain Tools]
+    Tools --> BE[clinic-backend :8080]
+    LLM -->|reply| API
+    API -->|session RAM| Memory[(In-memory sessions)]
 ```
 
-## 2. Giải pháp Intent Classifier (Phân loại ý định)
-Vì Llama 3.2 3B khá nhỏ, việc phó mặc 100% Function Calling cho mô hình sẽ dễ sinh ra lỗi (Hallucination). Do đó, luồng xử lý:
-1. **Bước 1 (Classifier):** Khi User nhắn tin, một mô hình phân loại nhỏ (hoặc prompt nhẹ) sẽ xác định Intent: `BOOK_APPOINTMENT`, `CHECK_RECORD`, `MEDICAL_ADVICE`, `GENERAL_INFO`.
-2. **Bước 2 (Execution):** 
-   - Nếu là `BOOK_APPOINTMENT`: Chạy luồng trích xuất Entity (Tên bác sĩ, Giờ, Chuyên khoa). Nếu thiếu thông tin -> Hỏi lại. Đủ thông tin -> Gọi Spring Boot API.
-   - Nếu là `MEDICAL_ADVICE`: Kích hoạt RAG, tìm kiếm bài báo y khoa nội bộ / CSDL triệu chứng, nhồi vào Context cho Ollama trả lời.
-3. **Bước 3 (Generation):** Ollama sinh câu trả lời tự nhiên dựa trên kết quả của Bước 2 và Stream về Client.
+## 2. Luồng xử lý một tin nhắn
+
+1. Client gửi `{ message, session_id }`
+2. **ChatService** lấy lịch sử hội thoại (RAM, tối đa 10 lượt)
+3. **KnowledgeRetriever** tìm 1–3 chunk FAQ liên quan (keyword overlap)
+4. **LLMService** gửi: system prompt + FAQ context + history + tin nhắn → Ollama
+5. Nếu LLM gọi tool → thực thi → gọi backend → LLM tổng hợp câu trả lời
+6. Lưu history, trả `{ reply, session_id }`
+
+## 3. Phân vai rõ ràng
+
+### Dùng RAG (FAQ tĩnh) khi:
+- Hỏi giờ làm việc, chính sách hủy lịch, thanh toán
+- Hỏi quy trình đặt lịch chung
+- Gợi ý chuyên khoa theo triệu chứng (tham khảo)
+
+### Dùng Tool Calling khi:
+- Cần tên bác sĩ, giá dịch vụ thực tế từ DB
+- Kiểm tra giờ trống của bác sĩ cụ thể
+- Đăng ký tài khoản guest
+
+## 4. Tools hiện có
+
+| Tool | Backend API |
+|------|-------------|
+| get_specialties_tool | GET /expertise/all |
+| get_doctors_tool | GET /staffs/filter |
+| get_services_tool | GET /services/all hoặc /featured |
+| get_clinic_info_tool | GET /settings |
+| get_available_slots_tool | GET /appointments/slots |
+| register_patient_tool | POST /auth/patient/register |
+
+## 5. Chưa triển khai (roadmap)
+
+- Vector RAG (embedding + ChromaDB) cho tài liệu lớn
+- Database lưu chat history
+- WebSocket streaming thật
+- Tool đặt lịch tự động (cần JWT bệnh nhân)
+- Intent classifier riêng (LLM tự quyết định qua tool calling)
+
+## 6. Cấu trúc mã nguồn
+
+```
+app/
+├── api/v1/endpoints/chat.py    # REST API
+├── services/
+│   ├── chat_service.py         # Orchestrator (RAG + session)
+│   └── llm_service.py          # Ollama + tool loop
+├── rag/retriever.py            # Light RAG
+├── tools/                      # LangChain tools
+├── clients/backend_client.py   # HTTP → Spring Boot
+└── core/prompts.py
+knowledge/                      # FAQ markdown (chunked) — xem docs/knowledge-base.md
+prompts/system.txt              # System prompt
+```
