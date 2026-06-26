@@ -11,14 +11,14 @@ Tài liệu này mô tả **những gì hệ thống làm được hôm nay**. A
 - Hỗ trợ **đăng ký tài khoản** guest (tool `register_patient_tool`).
 - Hướng dẫn bệnh nhân **tự đặt lịch trên web/app** sau khi đăng nhập.
 
-## AI chưa làm được gì
+## AI đã làm được những gì (Cập nhật mới)
 
-- **Không tự tạo lịch hẹn** thay bệnh nhân (chưa có tool book + JWT).
-- **Không tra giờ trống theo chuyên khoa** (chưa có API aggregate nhiều bác sĩ).
-- **Không tra giờ trống phòng xét nghiệm/chụp** không qua bác sĩ (chưa có API Lab slot).
-- **Không đặt gói khám nhiều dịch vụ một lần** (bảng `appointment_service` đang bổ sung).
+- **Tự động tạo lịch hẹn** thay bệnh nhân thông qua `book_appointment_tool` (đã hỗ trợ truyền JWT `access_token` từ Frontend).
+- **Xem và hủy lịch hẹn** cá nhân (sử dụng `get_my_appointments_tool` và `cancel_appointment_tool`).
+- **Tra giờ trống theo bác sĩ / chuyên khoa / dịch vụ** (đã tích hợp vào `get_available_slots_tool`).
+- (Đang phát triển): Đặt gói khám nhiều dịch vụ một lần (đợi backend hoàn thiện bảng `appointment_service`).
 
-Khi khách muốn đặt lịch: hướng dẫn lên **website/app** hoặc gọi **1900 2115**.
+Khi khách muốn đặt lịch mà chưa đăng nhập: AI sẽ yêu cầu khách đăng nhập trên website/app để lấy token, hoặc gọi hotline **1900 2115**.
 
 ## Quy tắc đặt lịch (backend đang enforce)
 

@@ -5,14 +5,21 @@ from app.core.exceptions import BackendClientError
 from app.rag.retriever import KnowledgeRetriever
 
 
+import unicodedata
+
+def remove_accents(input_str: str) -> str:
+    nfkd_form = unicodedata.normalize('NFKD', input_str)
+    text = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+    return text.replace('đ', 'd').replace('Đ', 'd')
+
 def _find_doctor_id(client: BackendClient, doctor_name: str) -> int | None:
     doctors = client.get_doctors()
-    keyword = doctor_name.strip().lower()
+    keyword = remove_accents(doctor_name.strip()).lower()
     if not keyword:
         return None
 
     for doctor in doctors:
-        full_name = (doctor.get("fullName") or "").lower()
+        full_name = remove_accents(doctor.get("fullName") or "").lower()
         if keyword in full_name or full_name in keyword:
             return doctor.get("staffId")
 
@@ -20,11 +27,11 @@ def _find_doctor_id(client: BackendClient, doctor_name: str) -> int | None:
 
 
 def _find_expertise_id(client: BackendClient, expertise_name: str) -> int | None:
-    keyword = expertise_name.strip().lower()
+    keyword = remove_accents(expertise_name.strip()).lower()
     if not keyword:
         return None
     for item in client.get_specialties():
-        name = (item.get("expertiseName") or "").lower()
+        name = remove_accents(item.get("expertiseName") or "").lower()
         if keyword in name or name in keyword:
             return item.get("expertiseId")
     return None
@@ -38,17 +45,22 @@ def _suggest_expertise_from_symptoms(symptoms: str) -> str:
 
 @tool
 def get_available_slots_tool(
-    appointment_date: str,
+    appointment_date: str = "",
     doctor_name: str = "",
     expertise_name: str = "",
     service_name: str = "",
 ) -> str:
     """
-    Kiểm tra khung giờ trống theo ngày.
-    appointment_date: YYYY-MM-DD
+    Dùng khi:
+    - Bệnh nhân hỏi lịch làm việc của bác sĩ.
+    - Bệnh nhân hỏi giờ khám, giờ trống.
+    - Bệnh nhân hỏi ngày mai, tuần sau, thứ 2, thứ 3... còn chỗ không.
+    
+    Tham số truyền vào:
+    appointment_date: YYYY-MM-DD (Nếu bệnh nhân hỏi ngày mai, tuần sau, thì BỎ TRỐNG trường này, hệ thống sẽ tự quét 7 ngày tới)
     doctor_name: tên bác sĩ (ưu tiên nếu có)
     expertise_name: chuyên khoa (nếu chưa chọn bác sĩ)
-    service_name: tên dịch vụ xét nghiệm/chụp (mode SERVICE)
+    service_name: tên dịch vụ xét nghiệm/chụp
     """
     client = BackendClient()
     try:
@@ -74,25 +86,39 @@ def get_available_slots_tool(
             if service_id is None:
                 return f"Không tìm thấy dịch vụ '{service_name}'."
 
-        slots = client.get_available_slots(
-            appointment_date=appointment_date,
-            doctor_id=doctor_id,
-            expertise_id=expertise_id,
-            service_id=service_id,
-        )
-        available = [s for s in slots if s.get("isAvailable")]
+        import datetime
+        
+        dates_to_check = [appointment_date.strip()] if appointment_date.strip() else []
+        if not dates_to_check:
+            today = datetime.date.today()
+            dates_to_check = [(today + datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
+            
+        all_available = []
+        for d in dates_to_check:
+            slots = client.get_available_slots(
+                appointment_date=d,
+                doctor_id=doctor_id,
+                expertise_id=expertise_id,
+                service_id=service_id,
+            )
+            for s in slots:
+                if s.get("isAvailable"):
+                    s["query_date"] = d
+                    all_available.append(s)
 
-        if not available:
-            return f"Không còn giờ trống ngày {appointment_date} với tiêu chí đã chọn."
+        if not all_available:
+            date_label = f"ngày {appointment_date}" if appointment_date.strip() else "7 ngày tới"
+            return f"Không còn giờ trống {date_label} với tiêu chí đã chọn."
 
         label = doctor_name or expertise_name or service_name or "lịch khám"
-        lines = [f"Giờ trống ({label}) ngày {appointment_date}:"]
-        for slot in available[:12]:
+        lines = [f"Giờ trống ({label}) tìm thấy:"]
+        for slot in all_available[:12]:
+            q_date = slot.get("query_date")
             start = str(slot.get("timeStart") or "--:--")[:5]
             end = str(slot.get("timeEnd") or "")[:5]
             doc = slot.get("doctorName") or ""
             suffix = f" — BS {doc}" if doc else ""
-            lines.append(f"- {start}" + (f" - {end}" if end else "") + suffix)
+            lines.append(f"- {q_date} {start}" + (f" - {end}" if end else "") + suffix)
         return "\n".join(lines)
     except BackendClientError as exc:
         return f"Không kiểm tra được giờ trống: {exc}"
@@ -101,8 +127,12 @@ def get_available_slots_tool(
 @tool
 def suggest_expertise_tool(symptoms: str) -> str:
     """
-    Gợi ý chuyên khoa tham khảo từ triệu chứng (không chẩn đoán).
-    symptoms: mô tả triệu chứng của bệnh nhân
+    Dùng khi:
+    - Bệnh nhân kể bệnh, mô tả triệu chứng (ví dụ: "tôi bị đau đầu", "tôi hay chóng mặt").
+    - Bệnh nhân hỏi nên đi khám khoa nào, khám bác sĩ nào cho bệnh này.
+    
+    symptoms: mô tả chi tiết triệu chứng của bệnh nhân.
+    LƯU Ý: Tool này chỉ gợi ý chuyên khoa, KHÔNG ĐƯỢC tự ý chẩn đoán bệnh.
     """
     client = BackendClient()
     rag_hint = _suggest_expertise_from_symptoms(symptoms)
@@ -121,11 +151,11 @@ def suggest_expertise_tool(symptoms: str) -> str:
 
 @tool
 def book_appointment_tool(
-    appointment_date: str,
-    time_start: str,
-    time_end: str,
-    booking_mode: str,
-    note: str,
+    appointment_date: str = "",
+    time_start: str = "",
+    time_end: str = "",
+    booking_mode: str = "EXPERTISE",
+    note: str = "",
     doctor_name: str = "",
     expertise_name: str = "",
     service_name: str = "",
@@ -133,7 +163,13 @@ def book_appointment_tool(
     access_token: str = "",
 ) -> str:
     """
-    Đặt lịch hộ bệnh nhân (cần đăng nhập — token được hệ thống tự gắn).
+    Dùng khi:
+    - Bệnh nhân đồng ý chốt ngày giờ khám.
+    - Bệnh nhân yêu cầu "đặt lịch cho tôi", "tôi muốn khám vào lúc...".
+    
+    Yêu cầu: Phải có đủ ngày và giờ thì mới được gọi tool này.
+    
+    Tham số:
     booking_mode: DOCTOR | EXPERTISE | SERVICE | DIRECT
     time_start/time_end: HH:MM:SS (vd 09:00:00, 09:30:00)
     suggested_expertise_name: chuyên khoa AI gợi ý (nếu khác chuyên khoa bệnh nhân chọn)
@@ -143,6 +179,9 @@ def book_appointment_tool(
             "Không thể đặt lịch tự động vì bạn chưa đăng nhập. "
             "Vui lòng đăng nhập trên app/website rồi thử lại, hoặc tự đặt tại mục Đặt lịch."
         )
+
+    if not appointment_date or not time_start or not time_end:
+        return "Thiếu thông tin ngày giờ khám (appointment_date, time_start, time_end). Vui lòng kiểm tra lại lịch trống và hỏi bệnh nhân."
 
     client = BackendClient()
     mode = booking_mode.strip().upper()
@@ -184,3 +223,63 @@ def book_appointment_tool(
         return f"Đã tạo lịch hẹn thành công (mã #{apt_id}). Trạng thái: PENDING — chờ phòng khám xác nhận."
     except BackendClientError as exc:
         return f"Không đặt được lịch: {exc}. Bạn có thể tự đặt trên app/website."
+
+
+@tool
+def get_my_appointments_tool(access_token: str = "") -> str:
+    """
+    Dùng khi:
+    - Bệnh nhân muốn xem lại các lịch đã đặt.
+    - Bệnh nhân hỏi "tôi có lịch khám nào sắp tới không", "lịch khám của tôi là khi nào".
+    
+    Yêu cầu: Bệnh nhân phải đăng nhập (token tự gắn).
+    """
+    if not access_token or not access_token.strip():
+        return "Vui lòng đăng nhập để xem lịch hẹn của bạn."
+
+    client = BackendClient()
+    try:
+        appointments = client.get_my_appointments(access_token.strip())
+        if not appointments:
+            return "Bạn hiện không có lịch khám nào."
+
+        lines = ["Danh sách lịch khám của bạn:"]
+        for apt in appointments[:5]:
+            apt_id = apt.get("appointmentId")
+            date = apt.get("appointmentDate")
+            start = str(apt.get("timeStart") or "")[:5]
+            status = apt.get("status")
+            doctor = apt.get("doctorName") or "Chưa gán"
+            specialty = apt.get("expertiseName") or ""
+            service = apt.get("serviceName") or ""
+            
+            detail = [d for d in [specialty, service, f"BS {doctor}" if doctor != "Chưa gán" else ""] if d]
+            lines.append(f"- Lịch #{apt_id}: {date} {start} | {', '.join(detail)} | Trạng thái: {status}")
+        
+        return "\n".join(lines)
+    except BackendClientError as exc:
+        return f"Không thể lấy danh sách lịch khám: {exc}"
+
+
+@tool
+def cancel_appointment_tool(appointment_id: int, reason: str, access_token: str = "") -> str:
+    """
+    Dùng khi:
+    - Bệnh nhân yêu cầu hủy lịch khám, hủy hẹn.
+    
+    Tham số:
+    appointment_id: mã lịch khám cần hủy (bắt buộc)
+    reason: lý do hủy (bắt buộc)
+    """
+    if not access_token or not access_token.strip():
+        return "Vui lòng đăng nhập để hủy lịch hẹn."
+
+    if not reason.strip():
+        return "Vui lòng cung cấp lý do hủy lịch."
+
+    client = BackendClient()
+    try:
+        client.cancel_appointment(appointment_id, reason, access_token.strip())
+        return f"Đã hủy lịch khám #{appointment_id} thành công."
+    except BackendClientError as exc:
+        return f"Hủy lịch thất bại: {exc}"

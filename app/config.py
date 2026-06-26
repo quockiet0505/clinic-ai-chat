@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Light RAG: tra cứu FAQ tĩnh từ thư mục knowledge/
     RAG_ENABLED: bool = True
-    RAG_TOP_K: int = 3
+    RAG_TOP_K: int = 5
     RAG_MIN_SCORE: float = 0.15
 
     model_config = SettingsConfigDict(

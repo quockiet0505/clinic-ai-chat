@@ -2,6 +2,10 @@
 
 ## 1. Tích hợp Frontend (Patient Web & Mobile)
 
+venv\Scripts\activate
+uvicorn app.main:app --port 8000
+
+
 ### Patient Web
 - File: `patient-web/src/features/chatbot/api/chatbotApi.ts`
 - Config: `VITE_AI_CHAT_URL` trong `.env`

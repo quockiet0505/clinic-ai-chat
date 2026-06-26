@@ -1,6 +1,8 @@
 from app.tools.appointment_tools import (
     book_appointment_tool,
+    cancel_appointment_tool,
     get_available_slots_tool,
+    get_my_appointments_tool,
     suggest_expertise_tool,
 )
 from app.tools.clinic_tools import (
@@ -20,6 +22,8 @@ ALL_TOOLS = [
     suggest_expertise_tool,
     book_appointment_tool,
     register_patient_tool,
+    get_my_appointments_tool,
+    cancel_appointment_tool,
 ]
 
 TOOL_REGISTRY = {tool.name: tool for tool in ALL_TOOLS}
@@ -35,4 +39,6 @@ __all__ = [
     "suggest_expertise_tool",
     "book_appointment_tool",
     "register_patient_tool",
+    "get_my_appointments_tool",
+    "cancel_appointment_tool",
 ]

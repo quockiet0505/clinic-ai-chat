@@ -14,7 +14,13 @@ def _format_price(value) -> str:
 
 @tool
 def get_specialties_tool() -> str:
-    """Lấy danh sách chuyên khoa của phòng khám. Dùng khi bệnh nhân hỏi về chuyên khoa hoặc cần gợi ý khám ở khoa nào."""
+    """
+    Dùng khi:
+    - Người dùng hỏi phòng khám có những chuyên khoa nào.
+    - Người dùng không biết nên chọn chuyên khoa nào và cần xem danh sách.
+    
+    TUYỆT ĐỐI KHÔNG dùng tool này để tìm bác sĩ hay lịch khám.
+    """
     client = BackendClient()
     try:
         specialties = client.get_specialties()
@@ -33,7 +39,11 @@ def get_specialties_tool() -> str:
 @tool
 def get_doctors_tool(expertise_name: str = "") -> str:
     """
-    Lấy danh sách bác sĩ. Có thể lọc theo tên chuyên khoa (expertise_name) nếu bệnh nhân đã chọn chuyên khoa.
+    Dùng khi:
+    - Người dùng hỏi danh sách bác sĩ chung.
+    - Người dùng hỏi bác sĩ thuộc một chuyên khoa cụ thể (chuyển expertise_name).
+    
+    TUYỆT ĐỐI KHÔNG dùng tool này để kiểm tra lịch làm việc, lịch trống hay ngày làm việc.
     """
     client = BackendClient()
     try:
@@ -72,7 +82,12 @@ def get_doctors_tool(expertise_name: str = "") -> str:
 @tool
 def get_services_tool(featured_only: bool = False) -> str:
     """
-    Lấy danh sách dịch vụ/gói khám. Đặt featured_only=true nếu bệnh nhân hỏi dịch vụ nổi bật hoặc khuyến mãi.
+    Dùng khi:
+    - Người dùng hỏi về các dịch vụ xét nghiệm, chụp chiếu, gói khám (như khám tổng quát, nội soi, siêu âm...).
+    - Người dùng hỏi về giá tiền dịch vụ.
+    - Đặt featured_only=true nếu người dùng hỏi dịch vụ nổi bật, khuyến mãi.
+    
+    TUYỆT ĐỐI KHÔNG dùng tool này để tìm bác sĩ hay lịch làm việc.
     """
     client = BackendClient()
     try:
@@ -99,7 +114,14 @@ def get_services_tool(featured_only: bool = False) -> str:
 
 @tool
 def get_clinic_info_tool() -> str:
-    """Lấy thông tin phòng khám: hotline, địa chỉ, giờ làm việc... Dùng khi bệnh nhân hỏi thông tin liên hệ."""
+    """
+    Dùng khi:
+    - Người dùng hỏi giờ làm việc chung của phòng khám.
+    - Người dùng hỏi địa chỉ, hotline, email của phòng khám.
+    - Người dùng hỏi thông tin liên hệ.
+    
+    LƯU Ý: Đây là giờ mở cửa chung của phòng khám, KHÔNG phải là lịch khám của bác sĩ cụ thể.
+    """
     client = BackendClient()
     try:
         settings_map = client.get_clinic_settings()

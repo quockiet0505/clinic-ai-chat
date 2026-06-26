@@ -7,8 +7,15 @@ from app.core.exceptions import BackendClientError
 @tool
 def register_patient_tool(email: str, password: str, full_name: str, phone: str) -> str:
     """
-    Đăng ký tài khoản mới cho bệnh nhân bằng email, mật khẩu, họ tên và số điện thoại.
-    Chỉ dùng khi người dùng là khách (chưa có tài khoản) nhưng muốn đặt lịch khám.
+    Dùng khi:
+    - Người dùng chưa có tài khoản và muốn đăng ký tài khoản mới.
+    - Người dùng muốn tạo tài khoản để đặt lịch khám.
+    
+    Tham số:
+    email: email của bệnh nhân (bắt buộc)
+    password: mật khẩu (bắt buộc)
+    full_name: họ và tên (bắt buộc)
+    phone: số điện thoại (bắt buộc)
     """
     client = BackendClient()
     try:
