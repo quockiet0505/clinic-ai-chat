@@ -81,8 +81,9 @@ Chỉ trả về JSON, không giải thích gì thêm."""
         system_prompt = f"""Đọc đoạn hội thoại và trích xuất thông tin Đặt Lịch vào định dạng JSON.
 Hôm nay là {today}. Nếu người dùng nói "ngày mai", hãy tự cộng ngày.
 Yêu cầu JSON bắt buộc phải có đúng 5 keys sau (nếu chưa rõ thông tin thì để chuỗi rỗng ""):
-- "target_type": Loại đối tượng khám (chỉ chọn 1 trong 3 giá trị: "DOCTOR", "EXPERTISE", "SERVICE", hoặc để rỗng).
-- "target_name": Tên của Bác sĩ / Chuyên khoa / Dịch vụ đó (VD: "Lê Tuấn", "Răng Hàm Mặt").
+- "target_type": Loại đặt lịch — chỉ "DOCTOR" (khám bác sĩ, cần cả chuyên khoa và tên bác sĩ) hoặc "SERVICE" (xét nghiệm/chụp), hoặc để rỗng.
+- "target_name": Với DOCTOR: tên bác sĩ. Với SERVICE: tên dịch vụ xét nghiệm/chụp.
+- "expertise_name": Chuyên khoa (bắt buộc khi target_type là DOCTOR).
 - "date": Ngày hẹn khám (định dạng YYYY-MM-DD).
 - "time_slot": Khung giờ khám (định dạng HH:mm, ví dụ: "08:30").
 - "symptoms": Triệu chứng bệnh hoặc lý do khám.
@@ -100,10 +101,11 @@ Chỉ trả về 1 khối JSON duy nhất, không kèm text."""
             return {
                 "target_type": data.get("target_type", ""),
                 "target_name": data.get("target_name", ""),
+                "expertise_name": data.get("expertise_name", ""),
                 "date": data.get("date", ""),
                 "time_slot": data.get("time_slot", ""),
                 "symptoms": data.get("symptoms", ""),
             }
         except Exception as e:
             logger.error(f"Booking extractor error: {e}")
-            return {"target_type": "", "target_name": "", "date": "", "time_slot": "", "symptoms": ""}
+            return {"target_type": "", "target_name": "", "expertise_name": "", "date": "", "time_slot": "", "symptoms": ""}

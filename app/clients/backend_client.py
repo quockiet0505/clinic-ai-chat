@@ -66,9 +66,10 @@ class BackendClient:
         result = self._request("GET", "/api/v1/expertise/all")
         return result if isinstance(result, list) else []
 
-    def get_services(self, featured_only: bool = False) -> list[dict]:
+    def get_services(self, featured_only: bool = False, bookable_only: bool = False) -> list[dict]:
         path = "/api/v1/services/featured" if featured_only else "/api/v1/services/all"
-        result = self._request("GET", path)
+        params = {"bookableOnly": "true"} if bookable_only else None
+        result = self._request("GET", path, params=params)
         return result if isinstance(result, list) else []
 
     def get_clinic_settings(self) -> dict[str, str]:

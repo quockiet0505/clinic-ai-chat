@@ -78,12 +78,13 @@ class ChatService:
         
         target_type = state.get("target_type")
         target_name = state.get("target_name")
+        expertise_name = state.get("expertise_name")
         date_str = state.get("date")
         time_slot = state.get("time_slot")
         symptoms = state.get("symptoms")
-        
+
         if not target_type or not target_name:
-            return "CHỈ THỊ CHO AI: Hãy hướng dẫn cách đặt lịch: yêu cầu người dùng vui lòng chọn chuyên khoa, hoặc mô tả bệnh, hoặc cho biết cần làm xét nghiệm/chụp X-quang gì để hệ thống hỗ trợ đặt lịch."
+            return "CHỈ THỊ CHO AI: Hướng dẫn đặt lịch theo 2 luồng: (1) Khám bác sĩ — chọn chuyên khoa VÀ bác sĩ; (2) Xét nghiệm/chụp — chọn dịch vụ (không cần bác sĩ)."
             
         if not date_str:
             return "CHỈ THỊ CHO AI: Hãy hỏi người dùng chọn ngày đi khám (Lưu ý phòng khám nghỉ Thứ 7 và Chủ Nhật)."
@@ -96,23 +97,25 @@ class ChatService:
             service_id = None
             
             target_t = (target_type or "").upper()
-            
-            # Khớp ID
-            if target_t in ["EXPERTISE", ""] and not any([expertise_id, doctor_id, service_id]):
+
+            if target_t == "DOCTOR":
+                if not expertise_name:
+                    return "CHỈ THỊ CHO AI: Đặt khám bác sĩ bắt buộc chọn chuyên khoa (expertise_name) và tên bác sĩ (target_name)."
                 for s in client.get_specialties():
-                    if target_name.lower() in (s.get("expertiseName") or "").lower():
+                    if expertise_name.lower() in (s.get("expertiseName") or "").lower():
                         expertise_id = s.get("expertiseId")
                         break
-            if target_t in ["DOCTOR", ""] and not any([expertise_id, doctor_id, service_id]):
-                for d in client.get_doctors():
+                for d in client.get_doctors(expertise_id=expertise_id):
                     if target_name.lower() in (d.get("fullName") or "").lower():
-                        doctor_id = d.get("id")
+                        doctor_id = d.get("staffId")
                         break
-            if target_t in ["SERVICE", ""] and not any([expertise_id, doctor_id, service_id]):
-                for s in client.get_services():
+            elif target_t == "SERVICE":
+                for s in client.get_services(bookable_only=True):
                     if target_name.lower() in (s.get("serviceName") or "").lower():
-                        service_id = s.get("id")
+                        service_id = s.get("serviceId")
                         break
+            else:
+                return "CHỈ THỊ CHO AI: Chỉ hỗ trợ DOCTOR (khám bác sĩ) hoặc SERVICE (xét nghiệm/chụp)."
 
             if not any([expertise_id, doctor_id, service_id]):
                 return f"HỆ THỐNG BÁO LỖI: Không tìm thấy '{target_name}' trong hệ thống. CHỈ THỊ CHO AI: Xin lỗi người dùng và yêu cầu chọn tên khác."
