@@ -153,4 +153,4 @@ def get_clinic_info_tool() -> str:
 - Địa chỉ: 71-73 Ngô Thời Nhiệm, Phường Võ Thị Sáu, Quận 3, TP.HCM
 - Hotline: 1900 2115
 - Email: cskh@clinic.com
-- Giờ làm việc: 07:30 – 17:00 từ Thứ 2 đến Chủ Nhật"""
+- Giờ làm việc: 07:30 – 17:00 từ Thứ 2 đến Thứ 7 (Nghỉ Chủ Nhật)"""

@@ -87,7 +87,7 @@ class ChatService:
             return "CHỈ THỊ CHO AI: Hướng dẫn đặt lịch theo 2 luồng: (1) Khám bác sĩ — chọn chuyên khoa VÀ bác sĩ; (2) Xét nghiệm/chụp — chọn dịch vụ (không cần bác sĩ)."
             
         if not date_str:
-            return "CHỈ THỊ CHO AI: Hãy hỏi người dùng chọn ngày đi khám (Lưu ý phòng khám nghỉ Thứ 7 và Chủ Nhật)."
+            return "CHỈ THỊ CHO AI: Hãy hỏi người dùng chọn ngày đi khám (Lưu ý phòng khám nghỉ Chủ Nhật)."
             
         from app.clients.backend_client import BackendClient
         client = BackendClient()
@@ -133,13 +133,27 @@ class ChatService:
             if not access_token:
                 return "CHỈ THỊ CHO AI: Yêu cầu người dùng Đăng nhập tài khoản trên web để chốt lịch hẹn."
                 
+            time_start = time_slot.split(" - ")[0].strip()
+            time_end = time_slot.split(" - ")[1].strip() if " - " in time_slot else ""
+            if not time_end and ":" in time_start:
+                try:
+                    from datetime import datetime, timedelta
+                    start_dt = datetime.strptime(time_start, "%H:%M")
+                    time_end = (start_dt + timedelta(minutes=30)).strftime("%H:%M")
+                except:
+                    time_end = time_start
+
             payload = {
                 "appointmentDate": date_str,
-                "timeSlot": time_slot,
-                "symptoms": symptoms,
-                "doctorId": doctor_id,
+                "timeStart": time_start,
+                "timeEnd": time_end,
+                "note": symptoms,
+                "bookingMode": target_t,
+                "mainDoctorId": doctor_id,
                 "expertiseId": expertise_id,
-                "serviceId": service_id
+                "serviceId": service_id,
+                "appointmentType": "ONLINE",
+                "createdBy": "PATIENT"
             }
             res = client.create_appointment(payload, access_token)
             return f"HỆ THỐNG BÁO: Đặt lịch THÀNH CÔNG! Mã vé: {res.get('id', 'N/A')}. CHỈ THỊ CHO AI: Chúc mừng người dùng."

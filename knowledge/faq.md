@@ -16,7 +16,7 @@
 
 ## Giờ làm việc hành chính
 **Câu hỏi:** Lịch làm việc của phòng khám như thế nào? Phòng khám mở cửa vào khung giờ nào?
-**Trả lời:** Lịch làm việc và giờ khám bệnh tại phòng khám là: **07:30 – 17:00**, làm việc tất cả các ngày từ **Thứ 2 đến Chủ Nhật**. Lễ tân trực hotline từ 07:30 đến 17:00. Hệ thống đặt lịch online hoạt động 24/7. Nghỉ lễ, Tết theo thông báo trên website.
+**Trả lời:** Lịch làm việc và giờ khám bệnh tại phòng khám là: **07:30 – 17:00**, làm việc tất cả các ngày từ **Thứ 2 đến Thứ 7**. Lễ tân trực hotline từ 07:30 đến 17:00. Hệ thống đặt lịch online hoạt động 24/7. Nghỉ chủ nhật, lễ, Tết theo thông báo trên website.
 
 ## Khám ngoài giờ và cấp cứu
 **Câu hỏi:** Phòng khám có khám ngoài giờ hoặc cấp cứu không?
@@ -24,7 +24,7 @@
 
 ## Quy định đặt lịch và hủy lịch
 **Câu hỏi:** Tôi phải đặt lịch trước bao lâu?
-**Trả lời:** Lịch hẹn trực tuyến (online) phải đặt **trước ít nhất 24 giờ** so với giờ khám. Mỗi khung giờ khám (slot) thường kéo dài **30 phút**.
+**Trả lời:** Lịch hẹn trực tuyến (online) phải đặt **trước ít nhất 24 giờ** so với giờ khám. Mỗi khung giờ khám (slot) thường kéo dài khoảng **30 phút** nếu không có chỉ định khác.
 
 **Câu hỏi:** Làm thế nào để hủy lịch khám? Tôi có bị tính phí khi hủy không?
 **Trả lời:** Bạn có thể hủy lịch trên website (mục Lịch hẹn của tôi) hoặc app. Bạn phải hủy **trước giờ khám ít nhất 3 tiếng** để được miễn phí. Hủy muộn hơn không thể thực hiện online mà phải gọi hotline.
