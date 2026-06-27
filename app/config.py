@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     HOST: str = "0.0.0.0"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    MODEL_NAME: str = "llama3.2:3b"
+    MODEL_NAME: str = "qwen2.5:3b"
     CLINIC_BACKEND_URL: str = "http://localhost:8080"
     LLM_TEMPERATURE: float = 0.3
     LLM_MAX_TOKENS: int = 500

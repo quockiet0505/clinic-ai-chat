@@ -2,14 +2,9 @@ from langchain_core.tools import tool
 
 from app.clients.backend_client import BackendClient
 from app.core.exceptions import BackendClientError
-
-
-def _format_price(value) -> str:
-    try:
-        number = float(value)
-        return f"{number:,.0f} VND".replace(",", ".")
-    except (TypeError, ValueError):
-        return "Liên hệ phòng khám"
+from app.schemas.domain_models import Specialty, Doctor, Service, ClinicInfo
+from app.services.response_validator import ResponseValidator
+from app.services.response_formatter import ResponseFormatter
 
 
 @tool
@@ -23,25 +18,32 @@ def get_specialties_tool() -> str:
     """
     client = BackendClient()
     try:
-        specialties = client.get_specialties()
-        if not specialties:
-            return "Hiện chưa có dữ liệu chuyên khoa trong hệ thống."
-
-        lines = ["Danh sách chuyên khoa:"]
-        for item in specialties[:15]:
-            name = item.get("expertiseName") or item.get("name") or "Không rõ"
-            lines.append(f"- {name}")
-        return "\n".join(lines)
-    except BackendClientError as exc:
-        return f"Không lấy được danh sách chuyên khoa: {exc}"
+        raw_data = client.get_specialties()
+        validated_data = ResponseValidator.validate_list(raw_data, "chuyên khoa")
+        
+        # Mapper
+        specialties = []
+        for item in validated_data:
+            specialties.append(Specialty(
+                id=item.get("expertiseId") or item.get("id"),
+                name=item.get("expertiseName") or item.get("name") or "Không rõ"
+            ))
+            
+        # Formatter
+        return ResponseFormatter.format_specialties(specialties)
+    except ValueError as e:
+        return str(e)
+    except BackendClientError as e:
+        return "Hệ thống Backend hiện không phản hồi."
 
 
 @tool
-def get_doctors_tool(expertise_name: str = "") -> str:
+def get_doctors_tool(expertise_name: str = "", doctor_name: str = "") -> str:
     """
     Dùng khi:
     - Người dùng hỏi danh sách bác sĩ chung.
-    - Người dùng hỏi bác sĩ thuộc một chuyên khoa cụ thể (chuyển expertise_name).
+    - Người dùng hỏi bác sĩ thuộc một chuyên khoa cụ thể (truyền expertise_name).
+    - Người dùng tìm một bác sĩ cụ thể bằng tên (truyền doctor_name, ví dụ: "Tuấn").
     
     TUYỆT ĐỐI KHÔNG dùng tool này để kiểm tra lịch làm việc, lịch trống hay ngày làm việc.
     """
@@ -49,67 +51,74 @@ def get_doctors_tool(expertise_name: str = "") -> str:
     try:
         expertise_id = None
         if expertise_name.strip():
-            specialties = client.get_specialties()
+            raw_specialties = client.get_specialties()
             keyword = expertise_name.strip().lower()
-            for item in specialties:
-                name = (item.get("expertiseName") or "").lower()
-                if keyword in name or name in keyword:
-                    expertise_id = item.get("expertiseId")
-                    break
+            if raw_specialties:
+                for item in raw_specialties:
+                    name = (item.get("expertiseName") or "").lower()
+                    if keyword in name or name in keyword:
+                        expertise_id = item.get("expertiseId")
+                        break
 
-        doctors = client.get_doctors(expertise_id=expertise_id)
-        if not doctors:
-            return "Hiện chưa có bác sĩ phù hợp trong hệ thống."
+        raw_doctors = client.get_doctors(expertise_id=expertise_id)
+        
+        if doctor_name.strip():
+            keyword_doc = doctor_name.strip().lower()
+            if raw_doctors:
+                raw_doctors = [d for d in raw_doctors if keyword_doc in (d.get("fullName") or "").lower()]
 
-        lines = ["Danh sách bác sĩ:"]
-        for doctor in doctors[:10]:
-            name = doctor.get("fullName") or "Bác sĩ"
-            specialty = doctor.get("expertiseName") or "Chuyên khoa"
-            rating = doctor.get("rating")
-            patients = doctor.get("patientCount")
-            extra = []
-            if rating is not None:
-                extra.append(f"★ {rating}")
-            if patients is not None:
-                extra.append(f"{patients} BN")
-            suffix = f" ({', '.join(extra)})" if extra else ""
-            lines.append(f"- {name} - {specialty}{suffix}")
-        return "\n".join(lines)
-    except BackendClientError as exc:
-        return f"Không lấy được danh sách bác sĩ: {exc}"
+        validated_doctors = ResponseValidator.validate_list(raw_doctors, "bác sĩ")
+        
+        # Mapper
+        doctors = []
+        for d in validated_doctors:
+            doctors.append(Doctor(
+                id=d.get("id"),
+                name=d.get("fullName") or "Bác sĩ",
+                expertise=d.get("expertiseName") or "Chuyên khoa",
+                rating=d.get("rating"),
+                patient_count=d.get("patientCount"),
+                consultation_fee=d.get("consultationFee")
+            ))
+            
+        # Formatter
+        return ResponseFormatter.format_doctors(doctors[:50])
+    except ValueError as e:
+        return str(e)
+    except BackendClientError as e:
+        return "Hệ thống Backend hiện không phản hồi."
 
 
 @tool
 def get_services_tool(featured_only: bool = False) -> str:
     """
     Dùng khi:
-    - Người dùng hỏi về các dịch vụ xét nghiệm, chụp chiếu, gói khám (như khám tổng quát, nội soi, siêu âm...).
+    - Người dùng hỏi về các dịch vụ xét nghiệm, chụp chiếu, gói khám.
     - Người dùng hỏi về giá tiền dịch vụ.
     - Đặt featured_only=true nếu người dùng hỏi dịch vụ nổi bật, khuyến mãi.
-    
-    TUYỆT ĐỐI KHÔNG dùng tool này để tìm bác sĩ hay lịch làm việc.
     """
     client = BackendClient()
     try:
-        services = client.get_services(featured_only=featured_only)
-        if not services:
-            label = "nổi bật" if featured_only else ""
-            return f"Hiện chưa có dịch vụ {label} trong hệ thống.".strip()
-
-        lines = ["Danh sách dịch vụ:" if not featured_only else "Dịch vụ nổi bật:"]
-        for service in services[:10]:
-            name = service.get("serviceName") or "Dịch vụ"
-            description = service.get("description") or ""
-            original = service.get("originalPrice")
-            discount = service.get("discountPrice")
-            price = discount or original
-            line = f"- {name}: {_format_price(price)}"
-            if description:
-                line += f" | {description[:80]}"
-            lines.append(line)
-        return "\n".join(lines)
-    except BackendClientError as exc:
-        return f"Không lấy được danh sách dịch vụ: {exc}"
+        raw_services = client.get_services(featured_only=featured_only)
+        validated_services = ResponseValidator.validate_list(raw_services, "dịch vụ nổi bật" if featured_only else "dịch vụ")
+        
+        # Mapper
+        services = []
+        for s in validated_services:
+            services.append(Service(
+                id=s.get("id"),
+                name=s.get("serviceName") or "Dịch vụ",
+                description=s.get("description"),
+                original_price=s.get("originalPrice"),
+                discount_price=s.get("discountPrice")
+            ))
+            
+        # Formatter
+        return ResponseFormatter.format_services(services[:10], featured_only=featured_only)
+    except ValueError as e:
+        return str(e)
+    except BackendClientError as e:
+        return "Hệ thống Backend hiện không phản hồi."
 
 
 @tool
@@ -118,31 +127,30 @@ def get_clinic_info_tool() -> str:
     Dùng khi:
     - Người dùng hỏi giờ làm việc chung của phòng khám.
     - Người dùng hỏi địa chỉ, hotline, email của phòng khám.
-    - Người dùng hỏi thông tin liên hệ.
-    
-    LƯU Ý: Đây là giờ mở cửa chung của phòng khám, KHÔNG phải là lịch khám của bác sĩ cụ thể.
     """
     client = BackendClient()
     try:
-        settings_map = client.get_clinic_settings()
-        if not settings_map:
-            return (
-                "Thông tin phòng khám ClinicPro:\n"
-                "- Giờ làm việc: 7:00 - 19:00 hàng ngày\n"
-                "- Vui lòng liên hệ quầy lễ tân để biết thêm chi tiết."
-            )
-
-        labels = {
-            "clinic_name": "Tên phòng khám",
-            "clinic_address": "Địa chỉ",
-            "clinic_phone": "Hotline",
-            "clinic_email": "Email",
-            "working_hours": "Giờ làm việc",
-        }
-        lines = ["Thông tin phòng khám:"]
-        for key, label in labels.items():
-            if key in settings_map and settings_map[key]:
-                lines.append(f"- {label}: {settings_map[key]}")
-        return "\n".join(lines) if len(lines) > 1 else "Chưa có cấu hình thông tin phòng khám."
-    except BackendClientError as exc:
-        return f"Không lấy được thông tin phòng khám: {exc}. Giờ làm việc mặc định: 7:00 - 19:00."
+        raw_info = client.get_clinic_settings()
+        validated_info = ResponseValidator.validate_dict(raw_info, "thông tin phòng khám")
+        
+        # Mapper
+        info = ClinicInfo(
+            name=validated_info.get("clinic_name"),
+            address=validated_info.get("clinic_address"),
+            phone=validated_info.get("clinic_phone"),
+            email=validated_info.get("clinic_email"),
+            working_hours=validated_info.get("working_hours")
+        )
+        
+        # Formatter
+        return ResponseFormatter.format_clinic_info(info)
+    except ValueError as e:
+        return str(e)
+    except BackendClientError as e:
+        # Fallback static info if backend is down or 403
+        return """Thông tin phòng khám ClinicPro:
+- Tên phòng khám: Phòng khám Đa khoa ClinicPro
+- Địa chỉ: 71-73 Ngô Thời Nhiệm, Phường Võ Thị Sáu, Quận 3, TP.HCM
+- Hotline: 1900 2115
+- Email: cskh@clinic.com
+- Giờ làm việc: 07:30 – 17:00 từ Thứ 2 đến Chủ Nhật"""

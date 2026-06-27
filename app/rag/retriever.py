@@ -91,7 +91,7 @@ class KnowledgeRetriever:
             ("###", "Header 3"),
         ]
         markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=350, chunk_overlap=50)
         
         docs = []
         for file_path in self.knowledge_dir.rglob("*.md"):
@@ -118,7 +118,7 @@ class KnowledgeRetriever:
         if not settings.RAG_ENABLED:
             return ""
             
-        top_k = top_k or settings.RAG_TOP_K
+        top_k = 2  # Override default to focus on top 2 most relevant chunks
         
         try:
             # Retriever với tính năng filter điểm số (score thresholding)
