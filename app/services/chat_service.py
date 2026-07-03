@@ -1,9 +1,11 @@
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+import time
 
 from app.rag.retriever import KnowledgeRetriever
 from app.rag.medical_retriever import MedicalRetriever
 from app.services.llm_service import LLMService
 from app.services.router_service import RouterService
+from app.services.query_analyzer import QueryAnalyzerService
 
 
 class ChatService:
@@ -13,11 +15,13 @@ class ChatService:
         retriever: KnowledgeRetriever | None = None,
         medical_retriever: MedicalRetriever | None = None,
         router_service: RouterService | None = None,
+        analyzer_service: QueryAnalyzerService | None = None,
     ):
         self.llm_service = llm_service or LLMService()
         self.retriever = retriever or KnowledgeRetriever()
         self.medical_retriever = medical_retriever or MedicalRetriever()
         self.router_service = router_service or RouterService()
+        self.analyzer_service = analyzer_service or QueryAnalyzerService()
         
         self._sessions: dict[str, list] = {}
         self._session_tokens: dict[str, str | None] = {}
@@ -43,48 +47,33 @@ class ChatService:
             return self.medical_retriever.retrieve(message)
             
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
-            from app.services.parameter_extractor import ParameterExtractorService
-            extractor = ParameterExtractorService()
-            params = extractor.extract_clinic_params(message)
-            
+            # Nếu param có sẵn từ Unified Analyzer
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
-            # Nếu có tên bác sĩ hoặc khoa cụ thể
-            if params.get("doctor_name") or params.get("expertise_name"):
-                return get_doctors_tool.invoke(params)
-                
-            # Nếu không trích xuất được tham số nào
-            if "bác sĩ" in message.lower() or "bs" in message.lower().split():
-                return get_doctors_tool.invoke({})
-            else:
-                return get_specialties_tool.invoke({})
-                
+            # Try to get parameters if this was passed via kwarg (we will update callers)
+            pass
+            
         elif intent == "CLINIC_INFO":
             from app.tools.clinic_tools import get_services_tool, get_clinic_info_tool
-            if "giá" in message.lower() or "dịch vụ" in message.lower() or "xét nghiệm" in message.lower():
+            msg_lower = message.lower()
+            if any(kw in msg_lower for kw in ["giá", "dịch vụ", "xét nghiệm", "chi phí", "bao nhiêu"]):
                 return get_services_tool.invoke({"featured_only": False})
             else:
                 return get_clinic_info_tool.invoke({})
                 
         elif intent == "BOOKING":
-            return self._handle_booking_flow(history, message, access_token)
+            pass
             
         else:
             return ""
 
-    def _handle_booking_flow(self, history: list, current_query: str, access_token: str | None) -> str:
-        from app.services.parameter_extractor import ParameterExtractorService
-        extractor = ParameterExtractorService()
-        state = extractor.extract_booking_state(history, current_query)
-        
+    def _execute_booking_flow(self, state: dict, date_str: str, time_slot: str, access_token: str | None) -> str:
         target_type = state.get("target_type")
         target_name = state.get("target_name")
         expertise_name = state.get("expertise_name")
-        date_str = state.get("date")
-        time_slot = state.get("time_slot")
         symptoms = state.get("symptoms")
 
         if not target_type or not target_name:
-            return "CHỈ THỊ CHO AI: Hướng dẫn đặt lịch theo 2 luồng: (1) Khám bác sĩ — chọn chuyên khoa VÀ bác sĩ; (2) Xét nghiệm/chụp — chọn dịch vụ (không cần bác sĩ)."
+            return "CHỈ THỊ CHO AI: Dạ vâng, bạn muốn đặt lịch khám bác sĩ (cần chọn chuyên khoa) hay muốn làm dịch vụ xét nghiệm/chụp chiếu ạ? Xin hãy hỏi người dùng một cách ngắn gọn và tự nhiên."
             
         if not date_str:
             return "CHỈ THỊ CHO AI: Hãy hỏi người dùng chọn ngày đi khám (Lưu ý phòng khám nghỉ Chủ Nhật)."
@@ -100,7 +89,7 @@ class ChatService:
 
             if target_t == "DOCTOR":
                 if not expertise_name:
-                    return "CHỈ THỊ CHO AI: Đặt khám bác sĩ bắt buộc chọn chuyên khoa (expertise_name) và tên bác sĩ (target_name)."
+                    return "CHỈ THỊ CHO AI: Xin hãy hỏi người dùng muốn khám chuyên khoa nào (ví dụ: Tai Mũi Họng, Nội, Sản...) để tôi tìm bác sĩ phù hợp ạ."
                 for s in client.get_specialties():
                     if expertise_name.lower() in (s.get("expertiseName") or "").lower():
                         expertise_id = s.get("expertiseId")
@@ -115,7 +104,7 @@ class ChatService:
                         service_id = s.get("serviceId")
                         break
             else:
-                return "CHỈ THỊ CHO AI: Chỉ hỗ trợ DOCTOR (khám bác sĩ) hoặc SERVICE (xét nghiệm/chụp)."
+                return "CHỈ THỊ CHO AI: Xin hãy hỏi lại người dùng là muốn khám bác sĩ hay sử dụng dịch vụ xét nghiệm/chụp chiếu."
 
             if not any([expertise_id, doctor_id, service_id]):
                 return f"HỆ THỐNG BÁO LỖI: Không tìm thấy '{target_name}' trong hệ thống. CHỈ THỊ CHO AI: Xin lỗi người dùng và yêu cầu chọn tên khác."
@@ -123,15 +112,15 @@ class ChatService:
             if not time_slot:
                 slots = client.get_available_slots(date_str, doctor_id, expertise_id, service_id)
                 if not slots:
-                    return f"HỆ THỐNG BÁO LỖI: Ngày {date_str} không có lịch trống. CHỈ THỊ CHO AI: Báo cho người dùng và gợi ý chọn ngày khác."
+                    return f"HỆ THỐNG BÁO LỖI: Ngày {date_str} hiện không còn giờ trống hoặc phòng khám nghỉ. CHỈ THỊ CHO AI: Xin lỗi người dùng và mời họ chọn một ngày khác."
                 slot_times = [s.get("startTime") for s in slots]
-                return f"HỆ THỐNG BÁO: Ngày {date_str} có các giờ sau: {', '.join(slot_times)}. CHỈ THỊ CHO AI: Liệt kê các giờ này và bảo người dùng chọn."
+                return f"HỆ THỐNG BÁO: Ngày {date_str} có các giờ sau: {', '.join(slot_times)}. CHỈ THỊ CHO AI: Liệt kê các giờ này thật ngắn gọn và mời người dùng chọn."
                 
             if not symptoms:
-                return "CHỈ THỊ CHO AI: Hỏi người dùng mô tả ngắn gọn triệu chứng để bác sĩ chuẩn bị."
+                return "CHỈ THỊ CHO AI: Dạ vâng, xin bạn chia sẻ ngắn gọn triệu chứng đang gặp phải hoặc lý do khám để bác sĩ chuẩn bị tốt hơn nhé."
                 
             if not access_token:
-                return "CHỈ THỊ CHO AI: Yêu cầu người dùng Đăng nhập tài khoản trên web để chốt lịch hẹn."
+                return "CHỈ THỊ CHO AI: Xin lỗi, bạn cần Đăng nhập tài khoản trên web/app để hoàn tất chốt lịch hẹn. Xin hãy hướng dẫn người dùng đăng nhập."
                 
             time_start = time_slot.split(" - ")[0].strip()
             time_end = time_slot.split(" - ")[1].strip() if " - " in time_slot else ""
@@ -258,30 +247,61 @@ Kết quả:"""
         session_id: str = "default_session",
         access_token: str | None = None,
     ) -> str:
+        start_time = time.time()
         history = self._get_history(session_id)
         
-        # Bước 0: Conditional Rewrite
+        # Rule-based fast check
+        fast_intent = self.router_service.get_rule_based_intent(message)
         search_query = message
-        if self._should_rewrite_query(message, history):
-            search_query = self._rewrite_query(message, history)
-            
-        # Bước 1: Intent Routing (dùng câu đã rewrite)
-        intent = self.router_service.get_intent(search_query)
+        intent = fast_intent
+        params = {}
         
-        # Bước 2: RAG / Python Pipeline
-        knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
+        # Chỉ gọi LLM Analyzer nếu:
+        # 1. Câu hỏi cần rewrite (theo logic cũ)
+        # 2. Hoặc intent là BOOKING / DOCTOR_INFO / CLINIC_SYMPTOM (vì cần extract tham số)
+        # 3. Hoặc Rule-based không nhận diện được (fallback)
+        needs_rewrite = self._should_rewrite_query(message, history)
+        
+        if needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent:
+            analysis = self.analyzer_service.analyze(message, history)
+            search_query = analysis.get("rewritten_query", message)
+            
+            # Cập nhật intent nếu LLM phân tích
+            if fast_intent in ["CLINIC_INFO", "GENERAL", "MEDICAL_QA", "EMERGENCY"] and not needs_rewrite:
+                intent = fast_intent
+            else:
+                intent = analysis.get("intent", fast_intent or "GENERAL")
+                
+            params = analysis.get("parameters", {})
+        else:
+            intent = fast_intent
+            
+        print(f"DEBUG: fast_intent={fast_intent}, final_intent={intent}, params={params}")
+            
+        # Xử lý lấy bối cảnh (Knowledge/Tools)
+        knowledge = ""
+        if intent == "BOOKING":
+            knowledge = self._execute_booking_flow(params, date_str=params.get("date"), time_slot=params.get("time_slot"), access_token=access_token)
+        elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
+            from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
+            if params.get("doctor_name") or params.get("expertise_name"):
+                knowledge = get_doctors_tool.invoke(params)
+            elif "bác sĩ" in search_query.lower():
+                knowledge = get_doctors_tool.invoke({})
+            else:
+                knowledge = get_specialties_tool.invoke({})
+        else:
+            knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
 
         print("=" * 80)
         print(f"INTENT CLASSIFIED: {intent}")
         print(f"QUESTION: {message}")
         if knowledge:
             print("KNOWLEDGE FETCHED:")
-            print(knowledge[:500] + "..." if len(knowledge) > 500 else knowledge)
+            print(knowledge[:800] + "..." if len(knowledge) > 800 else knowledge)
         print("=" * 80)
 
         token = self._resolve_token(session_id, access_token)
-        
-        # Bước 3: Đưa vào LLMService kèm Intent
         reply = self.llm_service.chat(
             user_message=message,
             history=history,
@@ -289,6 +309,10 @@ Kết quả:"""
             access_token=token,
             intent=intent,
         )
+        total_time = time.time() - start_time
+        print(f"[METRIC] Total Response Time: {total_time:.2f} seconds")
+        print("=" * 80)
+        
         self._append_history(session_id, message, reply)
         return reply
 
@@ -298,27 +322,57 @@ Kết quả:"""
         session_id: str = "default_session",
         access_token: str | None = None,
     ):
+        start_time = time.time()
         history = self._get_history(session_id)
         
-        # Bước 0: Conditional Rewrite
+        fast_intent = self.router_service.get_rule_based_intent(message)
         search_query = message
-        if self._should_rewrite_query(message, history):
-            search_query = self._rewrite_query(message, history)
-
-        # Bước 1: Intent Routing
-        intent = self.router_service.get_intent(search_query)
+        intent = fast_intent
+        params = {}
         
-        # Bước 2: RAG / Python Pipeline
-        knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
+        needs_rewrite = self._should_rewrite_query(message, history)
+        
+        if needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent:
+            analysis = self.analyzer_service.analyze(message, history)
+            search_query = analysis.get("rewritten_query", message)
+            
+            if fast_intent in ["CLINIC_INFO", "GENERAL", "MEDICAL_QA", "EMERGENCY"] and not needs_rewrite:
+                intent = fast_intent
+            else:
+                intent = analysis.get("intent", fast_intent or "GENERAL")
+                
+            params = analysis.get("parameters", {})
+        else:
+            intent = fast_intent
+            
+        print(f"DEBUG (STREAM): fast_intent={fast_intent}, final_intent={intent}, params={params}")
+            
+        knowledge = ""
+        if intent == "BOOKING":
+            knowledge = self._execute_booking_flow(params, date_str=params.get("date"), time_slot=params.get("time_slot"), access_token=access_token)
+        elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
+            from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
+            if params.get("doctor_name") or params.get("expertise_name"):
+                knowledge = get_doctors_tool.invoke(params)
+            elif "bác sĩ" in search_query.lower():
+                knowledge = get_doctors_tool.invoke({})
+            else:
+                knowledge = get_specialties_tool.invoke({})
+        else:
+            knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
         
         print("=" * 80)
         print(f"INTENT CLASSIFIED (STREAM): {intent}")
+        print(f"QUESTION: {message}")
+        if knowledge:
+            print("KNOWLEDGE FETCHED:")
+            print(knowledge[:800] + "..." if len(knowledge) > 800 else knowledge)
         print("=" * 80)
         
         token = self._resolve_token(session_id, access_token)
         chunks: list[str] = []
+        is_first_token = True
 
-        # Bước 3: Đưa vào LLMService
         for chunk in self.llm_service.stream_chat(
             user_message=message,
             history=history,
@@ -326,9 +380,18 @@ Kết quả:"""
             access_token=token,
             intent=intent,
         ):
+            if is_first_token:
+                ttft = time.time() - start_time
+                print(f"[METRIC] Time To First Token (TTFT): {ttft:.2f} seconds")
+                is_first_token = False
+                
             chunks.append(chunk)
             yield chunk
 
+        total_time = time.time() - start_time
+        print(f"[METRIC] Total Stream Time: {total_time:.2f} seconds")
+        print("=" * 80)
+        
         full_reply = "".join(chunks)
         if full_reply:
             self._append_history(session_id, message, full_reply)

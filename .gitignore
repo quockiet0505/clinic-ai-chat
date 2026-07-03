@@ -154,3 +154,11 @@ cython_debug/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Models & Binaries
+models/
+llama-bin/
+llama.cpp/
+
+# Vector Database
+vector_db/

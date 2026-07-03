@@ -1,0 +1,17 @@
+FROM ./models/clinic-ai-F16.gguf
+
+# Thiết lập các tham số để tối ưu tốc độ và chất lượng
+PARAMETER temperature 0.3
+PARAMETER num_ctx 2048
+PARAMETER num_thread 4
+
+# Template chat chuẩn cho Qwen
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ .Response }}<|im_end|>"""
+
+# System prompt mặc định
+SYSTEM """Bạn là một bác sĩ tư vấn y tế ảo của phòng khám ClinicPro. Nhiệm vụ của bạn là tư vấn sức khỏe, giải đáp triệu chứng và đưa ra lời khuyên y khoa an toàn dựa trên chuyên môn."""

@@ -33,6 +33,30 @@ Phân loại tin nhắn thành MỘT TRONG 7 Intent sau (chỉ in ra đúng 1 t�
 Hãy in ra 1 từ khóa:"""
 
     def get_intent(self, user_message: str) -> str:
+        intent = self.get_rule_based_intent(user_message)
+        if intent:
+            return intent
+            
+        # Fallback to LLM
+        logger.info(f"Rules didn't match for '{user_message}', falling back to LLM Router...")
+        messages = [
+            SystemMessage(content=self.system_prompt),
+            HumanMessage(content=user_message)
+        ]
+        try:
+            response = self.llm.invoke(messages)
+            intent = (response.content or "").strip().upper()
+            
+            for valid_intent in ["EMERGENCY", "BOOKING", "CLINIC_SYMPTOM", "DOCTOR_INFO", "CLINIC_INFO", "MEDICAL_QA", "GENERAL"]:
+                if valid_intent in intent:
+                    return valid_intent
+                    
+            return "GENERAL"
+        except Exception as e:
+            logger.error(f"Router error: {e}")
+            return "GENERAL"
+
+    def get_rule_based_intent(self, user_message: str) -> str | None:
         msg_lower = user_message.lower()
         
         # EMERGENCY rules
@@ -55,7 +79,7 @@ Hãy in ra 1 từ khóa:"""
             return "CLINIC_SYMPTOM"
             
         # CLINIC_INFO rules
-        clinic_info_keywords = ["giá", "bao nhiêu tiền", "xét nghiệm", "gói khám", "dịch vụ", "giờ làm việc", "lịch làm việc", "mấy giờ", "mở cửa", "đóng cửa", "khám giờ nào", "làm việc giờ nào", "địa chỉ", "ở đâu", "đường nào", "thanh toán", "hotline", "số điện thoại", "phòng khám có"]
+        clinic_info_keywords = ["giá", "bao nhiêu tiền", "chi phí", "xét nghiệm", "gói khám", "dịch vụ", "giờ làm việc", "lịch làm việc", "mấy giờ", "mở cửa", "đóng cửa", "khám giờ nào", "làm việc giờ nào", "địa chỉ", "ở đâu", "đường nào", "thanh toán", "hotline", "số điện thoại", "phòng khám có"]
         if any(kw in msg_lower for kw in clinic_info_keywords):
             return "CLINIC_INFO"
             
@@ -69,21 +93,4 @@ Hãy in ra 1 từ khóa:"""
         if any(kw in msg_lower for kw in general_keywords) and len(msg_lower.split()) <= 5:
             return "GENERAL"
             
-        # Fallback to LLM
-        logger.info(f"Rules didn't match for '{user_message}', falling back to LLM Router...")
-        messages = [
-            SystemMessage(content=self.system_prompt),
-            HumanMessage(content=user_message)
-        ]
-        try:
-            response = self.llm.invoke(messages)
-            intent = (response.content or "").strip().upper()
-            
-            for valid_intent in ["EMERGENCY", "BOOKING", "CLINIC_SYMPTOM", "DOCTOR_INFO", "CLINIC_INFO", "MEDICAL_QA", "GENERAL"]:
-                if valid_intent in intent:
-                    return valid_intent
-                    
-            return "GENERAL"
-        except Exception as e:
-            logger.error(f"Router error: {e}")
-            return "GENERAL"
+        return None

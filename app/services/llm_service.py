@@ -61,6 +61,7 @@ class LLMService:
 - TUYỆT ĐỐI KHÔNG TỰ BỊA RA (HALLUCINATE) BÁC SĨ, GIÁ TIỀN, HAY LỊCH TRỐNG. Chỉ nói những gì có trong CONTEXT.
 - Nếu CONTEXT có chứa chỉ thị "CHỈ THỊ CHO AI:", hãy làm theo chỉ thị đó một cách tự nhiên (Ví dụ: hỏi thêm thông tin ngày giờ, triệu chứng).
 - Bạn KHÔNG ĐƯỢC gọi Tool nào cả, chỉ cần nói chuyện với người dùng.
+- KHI LIỆT KÊ (Ví dụ: danh sách dịch vụ, giá tiền, tên bác sĩ...), BẮT BUỘC PHẢI XUỐNG DÒNG RÕ RÀNG TRƯỚC MỖI DẤU GẠCH ĐẦU DÒNG (-). Không được viết dính liền nhau.
 """
 
         content += "\n" + load_system_prompt()
