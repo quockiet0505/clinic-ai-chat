@@ -61,7 +61,7 @@ class LLMService:
 - TUYỆT ĐỐI KHÔNG TỰ BỊA RA (HALLUCINATE) BÁC SĨ, GIÁ TIỀN, HAY LỊCH TRỐNG. Chỉ nói những gì có trong CONTEXT.
 - Nếu CONTEXT có chứa chỉ thị "CHỈ THỊ CHO AI:", hãy làm theo chỉ thị đó một cách tự nhiên (Ví dụ: hỏi thêm thông tin ngày giờ, triệu chứng).
 - Bạn KHÔNG ĐƯỢC gọi Tool nào cả, chỉ cần nói chuyện với người dùng.
-- KHI LIỆT KÊ (Ví dụ: danh sách dịch vụ, giá tiền, tên bác sĩ...), BẮT BUỘC PHẢI XUỐNG DÒNG RÕ RÀNG TRƯỚC MỖI DẤU GẠCH ĐẦU DÒNG (-). Không được viết dính liền nhau.
+- KHI LIỆT KÊ (Ví dụ: danh sách dịch vụ, giá tiền, tên bác sĩ...), mỗi mục phải nằm trên 1 dòng riêng. TUYỆT ĐỐI KHÔNG tự ngắt dòng ở giữa câu nếu câu đó có chứa dấu gạch ngang (-).
 """
 
         content += "\n" + load_system_prompt()
@@ -73,16 +73,18 @@ class LLMService:
             messages.extend(history)
             
         if knowledge_context.strip():
+            # [HOTFIX] Replace hyphen with comma to prevent small LLMs from misinterpreting it as markdown lists
+            safe_context = knowledge_context.strip().replace(" - ", ", ")
             if intent == "MEDICAL_QA":
                 prompt = f"""===== TÀI LIỆU Y KHOA THAM KHẢO =====
 Dưới đây là các câu hỏi/đáp y khoa để bạn tham khảo. KHÔNG PHẢI là hồ sơ của người dùng.
 Hãy dùng kiến thức này để khuyên họ:
-{knowledge_context.strip()}
+{safe_context}
 =================================="""
             else:
                 prompt = f"""===== CONTEXT TỪ HỆ THỐNG =====
 Đọc kỹ dữ liệu và các CHỈ THỊ CHO AI (nếu có) dưới đây để trả lời người dùng:
-{knowledge_context.strip()}
+{safe_context}
 ==============================="""
             messages.append(HumanMessage(content=prompt))
             
@@ -107,16 +109,18 @@ Hãy dùng kiến thức này để khuyên họ:
             messages.extend(history)
             
         if knowledge_context.strip():
+            # [HOTFIX] Replace hyphen with comma to prevent small LLMs from misinterpreting it as markdown lists
+            safe_context = knowledge_context.strip().replace(" - ", ", ")
             if intent == "MEDICAL_QA":
                 prompt = f"""===== TÀI LIỆU Y KHOA THAM KHẢO =====
 Dưới đây là các câu hỏi/đáp y khoa để bạn tham khảo. KHÔNG PHẢI là hồ sơ của người dùng.
 Hãy dùng kiến thức này để khuyên họ:
-{knowledge_context.strip()}
+{safe_context}
 =================================="""
             else:
                 prompt = f"""===== CONTEXT TỪ HỆ THỐNG =====
 Đọc kỹ dữ liệu và các CHỈ THỊ CHO AI (nếu có) dưới đây để trả lời người dùng:
-{knowledge_context.strip()}
+{safe_context}
 ==============================="""
             messages.append(HumanMessage(content=prompt))
             
