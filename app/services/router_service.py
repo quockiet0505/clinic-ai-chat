@@ -28,7 +28,7 @@ Phân loại tin nhắn thành MỘT TRONG 7 Intent sau (chỉ in ra đúng 1 t�
 4. DOCTOR_INFO: Hỏi danh sách bác sĩ, tìm bác sĩ cụ thể.
 5. CLINIC_INFO: Hỏi dịch vụ, bảng giá, giờ làm việc, địa chỉ phòng khám.
 6. MEDICAL_QA: Hỏi tư vấn bệnh lý, sức khỏe, thuốc (Không liên quan đến đặt lịch/chọn khoa).
-7. GENERAL: Chào hỏi thông thường.
+7. GENERAL: Chào hỏi thông thường, CÂU HỎI NGOÀI LỀ, KHÔNG LIÊN QUAN ĐẾN Y TẾ HOẶC PHÒNG KHÁM.
 
 Hãy in ra 1 từ khóa:"""
 

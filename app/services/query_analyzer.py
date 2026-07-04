@@ -35,13 +35,13 @@ class QueryAnalyzerService:
 Hôm nay là {today}.
 
 Các Intent hợp lệ:
-1. EMERGENCY: Khẩn cấp.
-2. BOOKING: Đặt lịch khám.
-3. CLINIC_SYMPTOM: Hỏi khoa khám bệnh.
-4. DOCTOR_INFO: Thông tin bác sĩ.
-5. CLINIC_INFO: Thông tin phòng khám, giá, dịch vụ.
-6. MEDICAL_QA: Tư vấn y khoa.
-7. GENERAL: Chào hỏi.
+1. EMERGENCY: Khẩn cấp, nguy hiểm tính mạng.
+2. BOOKING: Yêu cầu đặt lịch khám, hẹn ngày giờ, xem lịch trống.
+3. CLINIC_SYMPTOM: Hỏi phòng khám có khoa nào khám bệnh abc.
+4. DOCTOR_INFO: Hỏi thông tin về bác sĩ, chuyên khoa.
+5. CLINIC_INFO: Hỏi thông tin phòng khám, giá tiền, giờ làm việc.
+6. MEDICAL_QA: Xin tư vấn y khoa, thuốc men, bệnh lý.
+7. GENERAL: Chào hỏi thông thường, CÂU HỎI NGOÀI LỀ, KHÔNG LIÊN QUAN ĐẾN Y TẾ HOẶC PHÒNG KHÁM, KHÔNG RÕ NGHĨA.
 
 Yêu cầu JSON có cấu trúc sau:
 {{
