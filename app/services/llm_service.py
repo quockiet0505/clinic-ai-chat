@@ -65,6 +65,7 @@ class LLMService:
 """
 
         content += "\n" + load_system_prompt()
+        content += "\n\nCRITICAL: KHI TRẢ LỜI CÓ DANH SÁCH LIỆT KÊ (1. 2. 3. hoặc dấu chấm/gạch đầu dòng), BẠN BẮT BUỘC PHẢI DÙNG KÝ TỰ XUỐNG DÒNG (ENTER) TRƯỚC MỖI MỤC. TUYỆT ĐỐI KHÔNG VIẾT DÍNH CHÙM TRÊN CÙNG MỘT DÒNG."
         return SystemMessage(content=content)
 
     def chat(self, user_message: str, history: list | None = None, knowledge_context: str = "", access_token: str | None = None, intent: str = "GENERAL") -> str:
@@ -91,7 +92,7 @@ Hãy dùng kiến thức này để khuyên họ:
         messages.append(HumanMessage(content=user_message))
 
         try:
-            # Bỏ Agent Loop, gọi thẳng 1 lần duy nhất!
+            # Dùng chung 1 model cho mọi Intent (Pure RAG)
             ai_msg = self.llm.invoke(messages)
             content = str(ai_msg.content)
             
@@ -127,6 +128,7 @@ Hãy dùng kiến thức này để khuyên họ:
         messages.append(HumanMessage(content=user_message))
 
         try:
+            # Dùng chung 1 model cho mọi Intent (Pure RAG)
             for chunk in self.llm.stream(messages):
                 yield chunk.content
         except Exception as exc:

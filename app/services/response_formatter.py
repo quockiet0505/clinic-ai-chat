@@ -32,7 +32,7 @@ class ResponseFormatter:
             suffix = f" ({', '.join(extra)})" if extra else ""
             
             fee_str = f" - Giá khám: {ResponseFormatter._format_price(doc.consultation_fee)}" if doc.consultation_fee else ""
-            lines.append(f"• BS {doc.name}{fee_str}\n  Chuyên khoa {doc.expertise}{suffix}")
+            lines.append(f"- BS {doc.name}{fee_str}\n  Chuyên khoa {doc.expertise}{suffix}")
         return "\n".join(lines)
 
     @staticmethod
@@ -42,7 +42,7 @@ class ResponseFormatter:
         for srv in services:
             price = srv.discount_price if srv.discount_price is not None else srv.original_price
             price_str = ResponseFormatter._format_price(price)
-            line = f"• {srv.name}: {price_str}"
+            line = f"- {srv.name}: {price_str}"
             if srv.description:
                 line += f"\n  Mô tả: {srv.description[:100]}..."
             lines.append(line)

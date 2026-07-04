@@ -33,8 +33,8 @@ class ChatService:
         history = self._sessions.setdefault(session_id, [])
         history.append(HumanMessage(content=user_message))
         history.append(AIMessage(content=assistant_reply))
-        if len(history) > 20:
-            self._sessions[session_id] = history[-20:]
+        if len(history) > 10:
+            self._sessions[session_id] = history[-10:]
 
     def _build_knowledge_context(self, message: str, intent: str, history: list, access_token: str | None) -> str:
         """
@@ -164,12 +164,9 @@ class ChatService:
             return False
             
         word_count = len(message.split())
-        if word_count < 6:
-            # Nếu câu ngắn nhưng không chứa đại từ liên kết thì cũng không cần rewrite
-            pronouns = ["nó", "cái đó", "bác sĩ đó", "ngày đó", "ở đó", "khoa nào", "vậy á", "có không", "được không", "vậy", "thì sao", "gì", "ai", "mấy giờ", "nhiêu", "sao", "ở đâu", "khi nào"]
-            if any(p in msg_lower for p in pronouns):
-                return True
-            return False
+        # Trả lời ngắn (< 10 từ) thường là đang trả lời câu hỏi của AI trong một luồng chat
+        if word_count < 10:
+            return True
             
         return False
 
@@ -324,6 +321,23 @@ Kết quả:"""
     ):
         start_time = time.time()
         history = self._get_history(session_id)
+        
+        # [SEMANTIC CACHE OPTIMIZATION] - Tối ưu 2
+        msg_lower = message.lower().strip()
+        if msg_lower in ["lịch làm việc", "giờ làm việc"]:
+            # Dùng \\n để frontend parse SSE an toàn mà không bị vỡ dòng "data: "
+            cached_response_sse = "Thông tin giờ làm việc của ClinicPro:\\n- **07:30 đến 17:00** từ Thứ 2 đến Thứ 7.\\n- **Nghỉ Chủ Nhật** (chỉ nhận cấp cứu trực tiếp).\\n\\nBạn muốn tôi hỗ trợ đặt lịch khám vào ngày nào?"
+            print(f"[METRIC] CACHE HIT! Response Time: {time.time() - start_time:.4f} seconds")
+            yield cached_response_sse
+            self._append_history(session_id, message, cached_response_sse.replace('\\n', '\n'))
+            return
+            
+        if msg_lower in ["chi phí khám", "bảng giá", "giá khám", "giá tiền"]:
+            cached_response_sse = "Dưới đây là chi phí một số gói dịch vụ nổi bật tại ClinicPro:\\n- Gói Xét Nghiệm Sinh Hóa Cơ Bản Tại Nhà: 616.481 VNĐ\\n- Gói Xét Nghiệm Tầm Soát Ung Thư Nữ Giới: 1.930.000 VNĐ\\n- Gói Xét Nghiệm Tổng Quát: 2.300.000 VNĐ\\n\\nBạn cần xem giá của dịch vụ hay chuyên khoa cụ thể nào khác không?"
+            print(f"[METRIC] CACHE HIT! Response Time: {time.time() - start_time:.4f} seconds")
+            yield cached_response_sse
+            self._append_history(session_id, message, cached_response_sse.replace('\\n', '\n'))
+            return
         
         fast_intent = self.router_service.get_rule_based_intent(message)
         search_query = message
