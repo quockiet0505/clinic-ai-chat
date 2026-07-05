@@ -109,6 +109,14 @@ class BackendClient:
         )
         return result if isinstance(result, list) else []
 
+    def get_my_medical_records(self, access_token: str) -> list[dict]:
+        result = self._request(
+            "GET",
+            "/api/v1/medical-records/my",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        return result if isinstance(result, list) else []
+
     def cancel_appointment(self, appointment_id: int, reason: str, access_token: str) -> dict:
         return self._request(
             "PATCH",

@@ -19,6 +19,6 @@ echo Buoc 2: Bat moi truong ao (virtual environment)...
 call venv\Scripts\activate.bat
 
 echo Buoc 3: Khoi chay FastAPI Server tai cong 8000...
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --host 0.0.0.0 --reload --port 8000
 
 pause

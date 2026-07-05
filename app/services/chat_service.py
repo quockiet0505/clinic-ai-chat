@@ -247,6 +247,52 @@ Kết quả:"""
         start_time = time.time()
         history = self._get_history(session_id)
         
+        # [SEMANTIC CACHE OPTIMIZATION]
+        msg_lower = message.lower().strip()
+        if "lịch làm việc" in msg_lower or "giờ làm việc" in msg_lower:
+            cached = "Thông tin giờ làm việc của ClinicPro:\n- **07:30 đến 17:00** từ Thứ 2 đến Thứ 7.\n- **Nghỉ Chủ Nhật** (chỉ nhận cấp cứu trực tiếp).\n\nBạn muốn tôi hỗ trợ đặt lịch khám vào ngày nào?"
+            self._append_history(session_id, message, cached)
+            return cached
+            
+        if any(k in msg_lower for k in ["chi phí khám", "bảng giá", "giá khám", "giá tiền"]):
+            cached = "Dưới đây là chi phí một số gói dịch vụ nổi bật tại ClinicPro:\n- Gói Xét Nghiệm Sinh Hóa Cơ Bản Tại Nhà: 616.481 VNĐ\n- Gói Xét Nghiệm Tầm Soát Ung Thư Nữ Giới: 1.930.000 VNĐ\n- Gói Xét Nghiệm Tổng Quát: 2.300.000 VNĐ\n\nBạn cần xem giá của dịch vụ hay chuyên khoa cụ thể nào khác không?"
+            self._append_history(session_id, message, cached)
+            return cached
+
+        if "chuyên khoa" in msg_lower:
+            try:
+                from app.clients.backend_client import BackendClient
+                client = BackendClient()
+                specialties = client.get_specialties()
+                spec_list = "\n".join([f"- {s.get('expertiseName', 'Khác')}" for s in specialties if s.get('expertiseName')])
+                cached = f"Hiện tại ClinicPro đang có các chuyên khoa sau:\n{spec_list}\n\nBạn cần đặt lịch khám chuyên khoa nào ạ?"
+            except Exception:
+                cached = "Phòng khám chúng tôi hiện có các chuyên khoa:\n- Nội khoa\n- Ngoại khoa\n- Nhi khoa\n- Sản phụ khoa\n- Da liễu\n- Tai Mũi Họng\n- Răng Hàm Mặt\n- Mắt\n\nBạn cần đặt lịch khám chuyên khoa nào ạ?"
+            self._append_history(session_id, message, cached)
+            return cached
+
+        if "hồ sơ" in msg_lower or "bệnh án" in msg_lower:
+            if not access_token:
+                cached = "Vui lòng đăng nhập trên ứng dụng để tôi có thể kiểm tra hồ sơ bệnh án của bạn nhé."
+            else:
+                try:
+                    from app.clients.backend_client import BackendClient
+                    client = BackendClient()
+                    records = client.get_my_medical_records(access_token)
+                    if not records:
+                        cached = "Hệ thống chưa ghi nhận hồ sơ bệnh án nào của bạn."
+                    else:
+                        latest = sorted(records, key=lambda x: x.get('createdAt', ''), reverse=True)[0]
+                        date = latest.get("createdAt", "")[:10]
+                        diag = latest.get("diagnosis", "Chưa có chẩn đoán")
+                        doc_name = latest.get("mainDoctorName", "Bác sĩ ClinicPro")
+                        cached = f"Bạn có 1 hồ sơ khám gần nhất vào ngày {date}:\n- Bác sĩ phụ trách: {doc_name}\n- Chẩn đoán: {diag}\n\nBạn có thể vào mục 'Hồ sơ' để xem chi tiết hơn nhé."
+                except Exception as e:
+                    cached = "Hiện tại không thể tải hồ sơ của bạn. Bạn vui lòng vào mục 'Hồ sơ' trên ứng dụng để kiểm tra chi tiết nhé."
+            
+            self._append_history(session_id, message, cached)
+            return cached
+        
         # Rule-based fast check
         fast_intent = self.router_service.get_rule_based_intent(message)
         search_query = message
@@ -324,17 +370,50 @@ Kết quả:"""
         
         # [SEMANTIC CACHE OPTIMIZATION] - Tối ưu 2
         msg_lower = message.lower().strip()
-        if msg_lower in ["lịch làm việc", "giờ làm việc"]:
-            # Dùng \\n để frontend parse SSE an toàn mà không bị vỡ dòng "data: "
+        if "lịch làm việc" in msg_lower or "giờ làm việc" in msg_lower:
             cached_response_sse = "Thông tin giờ làm việc của ClinicPro:\\n- **07:30 đến 17:00** từ Thứ 2 đến Thứ 7.\\n- **Nghỉ Chủ Nhật** (chỉ nhận cấp cứu trực tiếp).\\n\\nBạn muốn tôi hỗ trợ đặt lịch khám vào ngày nào?"
-            print(f"[METRIC] CACHE HIT! Response Time: {time.time() - start_time:.4f} seconds")
             yield cached_response_sse
             self._append_history(session_id, message, cached_response_sse.replace('\\n', '\n'))
             return
             
-        if msg_lower in ["chi phí khám", "bảng giá", "giá khám", "giá tiền"]:
+        if any(k in msg_lower for k in ["chi phí khám", "bảng giá", "giá khám", "giá tiền"]):
             cached_response_sse = "Dưới đây là chi phí một số gói dịch vụ nổi bật tại ClinicPro:\\n- Gói Xét Nghiệm Sinh Hóa Cơ Bản Tại Nhà: 616.481 VNĐ\\n- Gói Xét Nghiệm Tầm Soát Ung Thư Nữ Giới: 1.930.000 VNĐ\\n- Gói Xét Nghiệm Tổng Quát: 2.300.000 VNĐ\\n\\nBạn cần xem giá của dịch vụ hay chuyên khoa cụ thể nào khác không?"
-            print(f"[METRIC] CACHE HIT! Response Time: {time.time() - start_time:.4f} seconds")
+            yield cached_response_sse
+            self._append_history(session_id, message, cached_response_sse.replace('\\n', '\n'))
+            return
+
+        if "chuyên khoa" in msg_lower:
+            try:
+                from app.clients.backend_client import BackendClient
+                client = BackendClient()
+                specialties = client.get_specialties()
+                spec_list = "\\n".join([f"- {s.get('expertiseName', 'Khác')}" for s in specialties if s.get('expertiseName')])
+                cached_response_sse = f"Hiện tại ClinicPro đang có các chuyên khoa sau:\\n{spec_list}\\n\\nBạn cần đặt lịch khám chuyên khoa nào ạ?"
+            except Exception:
+                cached_response_sse = "Phòng khám chúng tôi hiện có các chuyên khoa:\\n- Nội khoa\\n- Ngoại khoa\\n- Nhi khoa\\n- Sản phụ khoa\\n- Da liễu\\n- Tai Mũi Họng\\n- Răng Hàm Mặt\\n- Mắt\\n\\nBạn cần đặt lịch khám chuyên khoa nào ạ?"
+            yield cached_response_sse
+            self._append_history(session_id, message, cached_response_sse.replace('\\n', '\n'))
+            return
+
+        if "hồ sơ" in msg_lower or "bệnh án" in msg_lower:
+            if not access_token:
+                cached_response_sse = "Vui lòng đăng nhập trên ứng dụng để tôi có thể kiểm tra hồ sơ bệnh án của bạn nhé."
+            else:
+                try:
+                    from app.clients.backend_client import BackendClient
+                    client = BackendClient()
+                    records = client.get_my_medical_records(access_token)
+                    if not records:
+                        cached_response_sse = "Hệ thống chưa ghi nhận hồ sơ bệnh án nào của bạn."
+                    else:
+                        latest = sorted(records, key=lambda x: x.get('createdAt', ''), reverse=True)[0]
+                        date = latest.get("createdAt", "")[:10]
+                        diag = latest.get("diagnosis", "Chưa có chẩn đoán")
+                        doc_name = latest.get("mainDoctorName", "Bác sĩ ClinicPro")
+                        cached_response_sse = f"Bạn có 1 hồ sơ khám gần nhất vào ngày {date}:\\n- Bác sĩ phụ trách: {doc_name}\\n- Chẩn đoán: {diag}\\n\\nBạn có thể vào mục 'Hồ sơ' để xem chi tiết hơn nhé."
+                except Exception as e:
+                    cached_response_sse = "Hiện tại không thể tải hồ sơ của bạn. Bạn vui lòng vào mục 'Hồ sơ' trên ứng dụng để kiểm tra chi tiết nhé."
+            
             yield cached_response_sse
             self._append_history(session_id, message, cached_response_sse.replace('\\n', '\n'))
             return

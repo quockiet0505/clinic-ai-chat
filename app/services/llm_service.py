@@ -20,13 +20,31 @@ class LLMService:
 
     def __init__(self):
         try:
-            self.llm = ChatOllama(
+            # 1. Luôn khởi tạo Ollama Local cho các tác vụ chung (Booking, Doctor Info, v.v.)
+            self.ollama_llm = ChatOllama(
                 model=settings.MODEL_NAME,
                 base_url=settings.OLLAMA_BASE_URL,
                 temperature=settings.LLM_TEMPERATURE,
             )
+            logger.info(f"Khởi tạo Ollama Local (model={settings.MODEL_NAME})")
+
+            # 2. Tùy chọn khởi tạo Modal (Fine-tuned) cho MEDICAL_QA / FAQ
+            self.modal_llm = None
+            if getattr(settings, "USE_MODAL_LLM", False):
+                from langchain_openai import ChatOpenAI
+                base_url = settings.MODAL_BASE_URL.rstrip('/')
+                if not base_url.endswith('/v1'):
+                    base_url = f"{base_url}/v1"
+                    
+                self.modal_llm = ChatOpenAI(
+                    model=settings.MODAL_MODEL_NAME,
+                    base_url=base_url,
+                    api_key=settings.MODAL_API_KEY or "EMPTY",
+                    temperature=settings.LLM_TEMPERATURE,
+                )
+                logger.info(f"Khởi tạo Modal LLM (model={settings.MODAL_MODEL_NAME}) thành công")
         except Exception as exc:
-            logger.error(f"Lỗi khởi tạo Ollama: {exc}")
+            logger.error(f"Lỗi khởi tạo LLM: {exc}")
             raise LLMServiceError("Không thể kết nối đến AI Service") from exc
 
     def _build_system_message(self, intent: str = "GENERAL") -> SystemMessage:
@@ -92,8 +110,12 @@ Hãy dùng kiến thức này để khuyên họ:
         messages.append(HumanMessage(content=user_message))
 
         try:
-            # Dùng chung 1 model cho mọi Intent (Pure RAG)
-            ai_msg = self.llm.invoke(messages)
+            # Hybrid Routing: Dùng Model Fine-tune cho QA, Ollama cho Booking/Info
+            active_llm = self.ollama_llm
+            if self.modal_llm and intent == "MEDICAL_QA":
+                active_llm = self.modal_llm
+                
+            ai_msg = active_llm.invoke(messages)
             content = str(ai_msg.content)
             
             import re
@@ -128,8 +150,12 @@ Hãy dùng kiến thức này để khuyên họ:
         messages.append(HumanMessage(content=user_message))
 
         try:
-            # Dùng chung 1 model cho mọi Intent (Pure RAG)
-            for chunk in self.llm.stream(messages):
+            # Hybrid Routing: Dùng Model Fine-tune cho QA, Ollama cho Booking/Info
+            active_llm = self.ollama_llm
+            if self.modal_llm and intent == "MEDICAL_QA":
+                active_llm = self.modal_llm
+                
+            for chunk in active_llm.stream(messages):
                 yield chunk.content
         except Exception as exc:
             logger.error(f"Stream error: {exc}")
