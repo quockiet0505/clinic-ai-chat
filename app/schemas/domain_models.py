@@ -11,14 +11,14 @@ class Doctor(BaseModel):
     expertise: str
     rating: Optional[float] = None
     patient_count: Optional[int] = None
-    consultation_fee: Optional[float] = None
+    consultation_final_fee: Optional[float] = None
 
 class Service(BaseModel):
     id: Optional[int] = None
     name: str
     description: Optional[str] = None
     original_price: Optional[float] = None
-    discount_price: Optional[float] = None
+    discount_amount: Optional[float] = None
 
 class ClinicInfo(BaseModel):
     name: Optional[str] = None

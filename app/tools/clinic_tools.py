@@ -78,7 +78,7 @@ def get_doctors_tool(expertise_name: str = "", doctor_name: str = "") -> str:
                 expertise=d.get("expertiseName") or "Chuyên khoa",
                 rating=d.get("rating"),
                 patient_count=d.get("patientCount"),
-                consultation_fee=d.get("consultationFee")
+                consultation_final_fee=d.get("consultationFinalFee")
             ))
             
         # Formatter
@@ -110,7 +110,7 @@ def get_services_tool(featured_only: bool = False) -> str:
                 name=s.get("serviceName") or "Dịch vụ",
                 description=s.get("description"),
                 original_price=s.get("originalPrice"),
-                discount_price=s.get("discountPrice")
+                discount_amount=s.get("discountAmount")
             ))
             
         # Formatter

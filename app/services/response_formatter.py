@@ -33,7 +33,7 @@ class ResponseFormatter:
                 extra.append(f"{doc.patient_count} BN")
             suffix = f" ({', '.join(extra)})" if extra else ""
             
-            fee_str = f" - Giá khám: {ResponseFormatter._format_price(doc.consultation_fee)}" if doc.consultation_fee else ""
+            fee_str = f" - Giá khám: {ResponseFormatter._format_price(doc.consultation_final_fee)}" if doc.consultation_final_fee else ""
             
             doc_name = doc.name
             if doc_name.lower().startswith("bác sĩ") or doc_name.lower().startswith("bs"):
@@ -52,7 +52,7 @@ class ResponseFormatter:
         title = "Dạ, đây là các dịch vụ xét nghiệm/chụp chiếu nổi bật tại phòng khám:" if featured_only else "Dạ, đây là danh sách các dịch vụ tại phòng khám:"
         lines = [title]
         for srv in services[:10]:
-            price = srv.discount_price if srv.discount_price is not None else srv.original_price
+            price = srv.discount_amount if srv.discount_amount is not None else srv.original_price
             price_str = ResponseFormatter._format_price(price)
             line = f"- {srv.name}: {price_str}"
             if srv.description:
