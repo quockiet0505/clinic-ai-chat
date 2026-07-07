@@ -1,0 +1,42 @@
+=== DOCTOR FLOW ===
+User: Tôi muốn đặt lịch khám bệnh [No Token]
+AI: Bạn vui lòng đăng nhập hoặc đăng ký tài khoản trước khi đặt lịch nhé.
+
+User: Tôi muốn đặt lịch khám bệnh
+AI: Xin hỏi bạn muốn khám chuyên khoa nào (ví dụ: Tai Mũi Họng, Nội, Sản...) để mình tìm bác sĩ phù hợp ạ?
+
+User: Bác sĩ Lê Tuấn
+AI: Xin vui lòng cung cấp ngày bạn muốn đi khám nhé (Lưu ý: phòng khám nghỉ ngày Chủ Nhật).
+
+User: 2026-07-09
+AI: Ngày 2026-07-09 có các giờ trống sau: 07:30:00, 08:00:00, 08:30:00, 09:00:00, 09:30:00, 10:00:00, 10:30:00, 11:00:00, 13:30:00, 14:00:00, 14:30:00, 15:00:00, 15:30:00, 16:00:00, 16:30:00. Bạn muốn chọn khung giờ nào ạ?
+
+User: 08:00
+AI: Để hoàn tất hồ sơ, xin bạn mô tả ngắn gọn triệu chứng đang gặp phải hoặc lý do đi khám nhé.
+
+User: Tôi bị đau bụng âm ỉ
+AI: Rất xin lỗi, có lỗi xảy ra khi đặt lịch: Selected time slot is no longer available.. Bạn vui lòng thử lại sau nhé.
+
+=== END OF FLOW ===
+
+=== SERVICE FLOW ===
+User: Tôi muốn đặt lịch xét nghiệm [No Token]
+AI: Bạn vui lòng đăng nhập hoặc đăng ký tài khoản trước khi đặt lịch nhé.
+
+User: Tôi muốn đặt lịch xét nghiệm
+AI: Xin hỏi bạn muốn sử dụng dịch vụ chụp chiếu hoặc xét nghiệm nào ạ?
+
+User: Xét nghiệm máu
+AI: Xin vui lòng cung cấp ngày bạn muốn đi khám nhé (Lưu ý: phòng khám nghỉ ngày Chủ Nhật).
+
+User: 2026-07-09
+AI: Ngày 2026-07-09 có các giờ trống sau: 07:30:00, 08:00:00, 08:30:00, 09:00:00, 09:30:00, 10:00:00, 10:30:00, 11:00:00, 13:30:00, 14:00:00, 14:30:00, 15:00:00, 15:30:00, 16:00:00, 16:30:00. Bạn muốn chọn khung giờ nào ạ?
+
+User: 09:00
+AI: Để hoàn tất hồ sơ, xin bạn mô tả ngắn gọn triệu chứng đang gặp phải hoặc lý do đi khám nhé.
+
+User: Kiểm tra sức khỏe định kỳ
+AI: Đặt lịch thành công! Mã vé của bạn là 1098. Cảm ơn bạn đã sử dụng dịch vụ của AI-Doctor!
+
+=== END OF FLOW ===
+

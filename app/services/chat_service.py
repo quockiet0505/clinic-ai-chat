@@ -25,6 +25,7 @@ class ChatService:
         
         self._sessions: dict[str, list] = {}
         self._session_tokens: dict[str, str | None] = {}
+        self._session_params: dict[str, dict] = {}
 
     def _get_history(self, session_id: str) -> list:
         return self._sessions.get(session_id, [])
@@ -68,16 +69,29 @@ class ChatService:
 
     def _execute_booking_flow(self, state: dict, date_str: str, time_slot: str, access_token: str | None) -> str:
         target_type = state.get("target_type")
-        target_name = state.get("target_name")
+        doctor_name = state.get("doctor_name")
+        service_name = state.get("service_name")
         expertise_name = state.get("expertise_name")
         symptoms = state.get("symptoms")
 
-        if not target_type or not target_name:
-            return "CHỈ THỊ CHO AI: Dạ vâng, bạn muốn đặt lịch khám bác sĩ (cần chọn chuyên khoa) hay muốn làm dịch vụ xét nghiệm/chụp chiếu ạ? Xin hãy hỏi người dùng một cách ngắn gọn và tự nhiên."
+        target_t = (target_type or "").upper()
+        
+        if not target_t:
+            if expertise_name or doctor_name:
+                target_t = "DOCTOR"
+            elif service_name:
+                target_t = "SERVICE"
+            else:
+                return "[DIRECT_REPLY] Xin hỏi bạn muốn đặt lịch khám với Bác sĩ/Chuyên khoa hay sử dụng Dịch vụ (Xét nghiệm, Chụp X-Quang)?"
+                
+            # Cập nhật ngược lại state để session lưu lại
+            state["target_type"] = target_t
+
+        if not access_token or access_token == "null" or access_token == "undefined":
+            return "[DIRECT_REPLY] Bạn vui lòng đăng nhập hoặc đăng ký tài khoản trước khi đặt lịch nhé."
             
-        if not date_str:
-            return "CHỈ THỊ CHO AI: Hãy hỏi người dùng chọn ngày đi khám (Lưu ý phòng khám nghỉ Chủ Nhật)."
-            
+        target_name = doctor_name if target_t == "DOCTOR" else service_name
+
         from app.clients.backend_client import BackendClient
         client = BackendClient()
         try:
@@ -85,42 +99,73 @@ class ChatService:
             doctor_id = None
             service_id = None
             
-            target_t = (target_type or "").upper()
-
             if target_t == "DOCTOR":
-                if not expertise_name:
-                    return "CHỈ THỊ CHO AI: Xin hãy hỏi người dùng muốn khám chuyên khoa nào (ví dụ: Tai Mũi Họng, Nội, Sản...) để tôi tìm bác sĩ phù hợp ạ."
-                for s in client.get_specialties():
-                    if expertise_name.lower() in (s.get("expertiseName") or "").lower():
-                        expertise_id = s.get("expertiseId")
-                        break
-                for d in client.get_doctors(expertise_id=expertise_id):
-                    if target_name.lower() in (d.get("fullName") or "").lower():
-                        doctor_id = d.get("staffId")
-                        break
+                if not expertise_name and not target_name:
+                    return "[DIRECT_REPLY] Xin hỏi bạn muốn khám chuyên khoa nào (ví dụ: Tai Mũi Họng, Nội, Sản...) để mình tìm bác sĩ phù hợp ạ?"
+                
+                if expertise_name:
+                    for s in client.get_specialties():
+                        if expertise_name.lower() in (s.get("expertiseName") or "").lower():
+                            expertise_id = s.get("expertiseId")
+                            break
+                    if not expertise_id:
+                        return f"[DIRECT_REPLY] Xin lỗi, mình không tìm thấy chuyên khoa '{expertise_name}' trong hệ thống. Bạn vui lòng chọn chuyên khoa khác nhé."
+                        
+                if not target_name:
+                    doctors = client.get_doctors(expertise_id=expertise_id)
+                    if not doctors:
+                        return f"[DIRECT_REPLY] Xin lỗi, hiện chưa có bác sĩ nào thuộc chuyên khoa '{expertise_name}'."
+                    doc_names = [d.get("fullName", "") for d in doctors]
+                    return f"[DIRECT_REPLY] Các bác sĩ thuộc chuyên khoa '{expertise_name}' gồm có: {', '.join(doc_names)}. Bạn muốn chọn bác sĩ nào ạ?"
+                if target_name:
+                    for d in client.get_doctors(expertise_id=expertise_id):
+                        db_name = (d.get("fullName") or "").lower()
+                        user_name = target_name.lower()
+                        
+                        def norm_name(s: str) -> str:
+                            for t in ["bác sĩ", "bs.", "bs", "thạc sĩ", "tiến sĩ", "ths", "ts", "ckii", "cki", "ck2", "ck1", "."]:
+                                s = s.replace(t, " ")
+                            import re
+                            s = re.sub(r'\s+', ' ', s).strip()
+                            return s
+                            
+                        norm_db = norm_name(db_name)
+                        norm_user = norm_name(user_name)
+                        
+                        if norm_user and norm_db and (norm_user in norm_db or norm_db in norm_user):
+                            doctor_id = d.get("staffId")
+                            if not expertise_id and "expertiseId" in d:
+                                expertise_id = d.get("expertiseId")
+                            break
+                    if not doctor_id:
+                        return f"[DIRECT_REPLY] Xin lỗi, mình không tìm thấy bác sĩ '{target_name}'. Bạn vui lòng kiểm tra lại tên hoặc chọn bác sĩ khác nhé."
+                        
             elif target_t == "SERVICE":
+                if not target_name:
+                    return "[DIRECT_REPLY] Xin hỏi bạn muốn sử dụng dịch vụ chụp chiếu hoặc xét nghiệm nào ạ?"
                 for s in client.get_services(bookable_only=True):
                     if target_name.lower() in (s.get("serviceName") or "").lower():
                         service_id = s.get("serviceId")
                         break
+                if not service_id:
+                    return f"[DIRECT_REPLY] Xin lỗi, mình không tìm thấy dịch vụ '{target_name}'. Bạn vui lòng chọn dịch vụ khác nhé."
             else:
-                return "CHỈ THỊ CHO AI: Xin hãy hỏi lại người dùng là muốn khám bác sĩ hay sử dụng dịch vụ xét nghiệm/chụp chiếu."
+                return "[DIRECT_REPLY] Xin vui lòng xác nhận lại bạn muốn khám bác sĩ hay sử dụng dịch vụ chụp chiếu ạ."
 
-            if not any([expertise_id, doctor_id, service_id]):
-                return f"HỆ THỐNG BÁO LỖI: Không tìm thấy '{target_name}' trong hệ thống. CHỈ THỊ CHO AI: Xin lỗi người dùng và yêu cầu chọn tên khác."
+            if not date_str:
+                return "[DIRECT_REPLY] Xin vui lòng cung cấp ngày bạn muốn đi khám nhé (Lưu ý: phòng khám nghỉ ngày Chủ Nhật)."
 
             if not time_slot:
                 slots = client.get_available_slots(date_str, doctor_id, expertise_id, service_id)
                 if not slots:
-                    return f"HỆ THỐNG BÁO LỖI: Ngày {date_str} hiện không còn giờ trống hoặc phòng khám nghỉ. CHỈ THỊ CHO AI: Xin lỗi người dùng và mời họ chọn một ngày khác."
-                slot_times = [s.get("startTime") for s in slots]
-                return f"HỆ THỐNG BÁO: Ngày {date_str} có các giờ sau: {', '.join(slot_times)}. CHỈ THỊ CHO AI: Liệt kê các giờ này thật ngắn gọn và mời người dùng chọn."
+                    return f"[DIRECT_REPLY] Xin lỗi, ngày {date_str} không còn giờ trống hoặc phòng khám nghỉ. Bạn vui lòng chọn ngày khác nhé."
+                slot_times = [s.get("timeStart") for s in slots if s.get("timeStart")]
+                return f"[DIRECT_REPLY] Ngày {date_str} có các giờ trống sau: {', '.join(slot_times)}. Bạn muốn chọn khung giờ nào ạ?"
                 
             if not symptoms:
-                return "CHỈ THỊ CHO AI: Dạ vâng, xin bạn chia sẻ ngắn gọn triệu chứng đang gặp phải hoặc lý do khám để bác sĩ chuẩn bị tốt hơn nhé."
-                
+                return "[DIRECT_REPLY] Để hoàn tất hồ sơ, xin bạn mô tả ngắn gọn triệu chứng đang gặp phải hoặc lý do đi khám nhé."
             if not access_token:
-                return "CHỈ THỊ CHO AI: Xin lỗi, bạn cần Đăng nhập tài khoản trên web/app để hoàn tất chốt lịch hẹn. Xin hãy hướng dẫn người dùng đăng nhập."
+                return "[DIRECT_REPLY] Bạn vui lòng đăng nhập tài khoản trên web/app để hoàn tất đặt lịch nhé."
                 
             time_start = time_slot.split(" - ")[0].strip()
             time_end = time_slot.split(" - ")[1].strip() if " - " in time_slot else ""
@@ -145,9 +190,9 @@ class ChatService:
                 "createdBy": "PATIENT"
             }
             res = client.create_appointment(payload, access_token)
-            return f"HỆ THỐNG BÁO: Đặt lịch THÀNH CÔNG! Mã vé: {res.get('id', 'N/A')}. CHỈ THỊ CHO AI: Chúc mừng người dùng."
+            return f"[DIRECT_REPLY] Đặt lịch thành công! Mã vé của bạn là {res.get('appointmentId', 'N/A')}. Cảm ơn bạn đã sử dụng dịch vụ của AI-Doctor!"
         except Exception as e:
-            return f"HỆ THỐNG LỖI: {e}. CHỈ THỊ CHO AI: Báo lỗi cho người dùng."
+            return f"[DIRECT_REPLY] Rất xin lỗi, có lỗi xảy ra khi đặt lịch: {e}. Bạn vui lòng thử lại sau nhé."
 
     def _resolve_token(self, session_id: str, access_token: str | None) -> str | None:
         if access_token:
@@ -160,12 +205,12 @@ class ChatService:
             
         msg_lower = message.lower().strip()
         # Không bao giờ rewrite các câu lệnh tab trực tiếp
-        if msg_lower in ["lịch làm việc", "đặt lịch khám", "chi phí khám", "bảng giá", "giá khám"]:
+        if msg_lower in ["lịch làm việc", "đặt lịch khám", "chi phí khám", "bảng giá", "giá khám", "giờ làm việc", "các chuyên khoa", "hồ sơ bệnh án", "chuyên khoa"]:
             return False
             
         word_count = len(message.split())
-        # Trả lời ngắn (< 10 từ) thường là đang trả lời câu hỏi của AI trong một luồng chat
-        if word_count < 10:
+        # Trả lời ngắn (< 5 từ) thường là đang cung cấp thông tin (như tên, ngày, giờ) cho AI
+        if word_count < 5:
             return True
             
         return False
@@ -247,51 +292,7 @@ Kết quả:"""
         start_time = time.time()
         history = self._get_history(session_id)
         
-        # [SEMANTIC CACHE OPTIMIZATION]
-        msg_lower = message.lower().strip()
-        if "lịch làm việc" in msg_lower or "giờ làm việc" in msg_lower:
-            cached = "Thông tin giờ làm việc của ClinicPro:\n- **07:30 đến 17:00** từ Thứ 2 đến Thứ 7.\n- **Nghỉ Chủ Nhật** (chỉ nhận cấp cứu trực tiếp).\n\nBạn muốn tôi hỗ trợ đặt lịch khám vào ngày nào?"
-            self._append_history(session_id, message, cached)
-            return cached
-            
-        if any(k in msg_lower for k in ["chi phí khám", "bảng giá", "giá khám", "giá tiền"]):
-            cached = "Dưới đây là chi phí một số gói dịch vụ nổi bật tại ClinicPro:\n- Gói Xét Nghiệm Sinh Hóa Cơ Bản Tại Nhà: 616.481 VNĐ\n- Gói Xét Nghiệm Tầm Soát Ung Thư Nữ Giới: 1.930.000 VNĐ\n- Gói Xét Nghiệm Tổng Quát: 2.300.000 VNĐ\n\nBạn cần xem giá của dịch vụ hay chuyên khoa cụ thể nào khác không?"
-            self._append_history(session_id, message, cached)
-            return cached
-
-        if "chuyên khoa" in msg_lower:
-            try:
-                from app.clients.backend_client import BackendClient
-                client = BackendClient()
-                specialties = client.get_specialties()
-                spec_list = "\n".join([f"- {s.get('expertiseName', 'Khác')}" for s in specialties if s.get('expertiseName')])
-                cached = f"Hiện tại ClinicPro đang có các chuyên khoa sau:\n{spec_list}\n\nBạn cần đặt lịch khám chuyên khoa nào ạ?"
-            except Exception:
-                cached = "Phòng khám chúng tôi hiện có các chuyên khoa:\n- Nội khoa\n- Ngoại khoa\n- Nhi khoa\n- Sản phụ khoa\n- Da liễu\n- Tai Mũi Họng\n- Răng Hàm Mặt\n- Mắt\n\nBạn cần đặt lịch khám chuyên khoa nào ạ?"
-            self._append_history(session_id, message, cached)
-            return cached
-
-        if "hồ sơ" in msg_lower or "bệnh án" in msg_lower:
-            if not access_token:
-                cached = "Vui lòng đăng nhập trên ứng dụng để tôi có thể kiểm tra hồ sơ bệnh án của bạn nhé."
-            else:
-                try:
-                    from app.clients.backend_client import BackendClient
-                    client = BackendClient()
-                    records = client.get_my_medical_records(access_token)
-                    if not records:
-                        cached = "Hệ thống chưa ghi nhận hồ sơ bệnh án nào của bạn."
-                    else:
-                        latest = sorted(records, key=lambda x: x.get('createdAt', ''), reverse=True)[0]
-                        date = latest.get("createdAt", "")[:10]
-                        diag = latest.get("diagnosis", "Chưa có chẩn đoán")
-                        doc_name = latest.get("mainDoctorName", "Bác sĩ ClinicPro")
-                        cached = f"Bạn có 1 hồ sơ khám gần nhất vào ngày {date}:\n- Bác sĩ phụ trách: {doc_name}\n- Chẩn đoán: {diag}\n\nBạn có thể vào mục 'Hồ sơ' để xem chi tiết hơn nhé."
-                except Exception as e:
-                    cached = "Hiện tại không thể tải hồ sơ của bạn. Bạn vui lòng vào mục 'Hồ sơ' trên ứng dụng để kiểm tra chi tiết nhé."
-            
-            self._append_history(session_id, message, cached)
-            return cached
+        # Đã loại bỏ Cache cứng theo yêu cầu, AI sẽ tự trả lời tự nhiên qua LLM
         
         # Rule-based fast check
         fast_intent = self.router_service.get_rule_based_intent(message)
@@ -305,12 +306,53 @@ Kết quả:"""
         # 3. Hoặc Rule-based không nhận diện được (fallback)
         needs_rewrite = self._should_rewrite_query(message, history)
         
-        if needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent:
+        msg_lower = message.lower().strip()
+        generic_phrases = [
+            "đặt lịch", "đặt khám", "đặt lịch khám", "đặt lịch khám bệnh", "tôi muốn đặt lịch", "cho tôi đặt lịch",
+            "bác sĩ", "danh sách bác sĩ", "tìm bác sĩ", 
+            "khoa nào", "khám khoa nào"
+        ]
+        skip_analyze = msg_lower in generic_phrases
+        
+        memory_params = self._session_params.setdefault(session_id, {})
+        is_booking = memory_params.get("is_booking", False) or bool(memory_params.get("target_type"))
+        confirming_cancel = memory_params.get("confirming_cancel", False)
+
+        msg_lower = message.lower().strip()
+        
+        if confirming_cancel:
+            if "tiếp tục" in msg_lower or "tiep tuc" in msg_lower or msg_lower in ["có", "co", "thoát", "hủy"]:
+                pending_message = memory_params.get("pending_message", message)
+                self.clear_session(session_id)
+                memory_params = self._session_params.setdefault(session_id, {})
+                is_booking = False
+                message = pending_message
+                msg_lower = message.lower().strip()
+            elif "quay lại" in msg_lower or "quay lai" in msg_lower or "không" in msg_lower:
+                memory_params["confirming_cancel"] = False
+                self._session_params[session_id] = memory_params
+                # Continue as if they didn't interrupt
+                intent = "BOOKING"
+                msg_lower = "quay lại" # just a safe fallback to trigger the booking flow again
+            else:
+                self.clear_session(session_id)
+                memory_params = self._session_params.setdefault(session_id, {})
+                is_booking = False
+
+        cancel_keywords = ["hủy đặt", "không đặt", "dừng đặt", "cancel booking"]
+        if is_booking and any(k in msg_lower for k in cancel_keywords):
+            self.clear_session(session_id)
+            is_booking = False
+            # We need to return this properly in the stream/send method, let's just clear session and let the LLM reply or hardcode it
+            message = "hủy đặt lịch thành công"
+            msg_lower = message.lower()
+
+        if (is_booking or needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent) and not skip_analyze:
             analysis = self.analyzer_service.analyze(message, history)
             search_query = analysis.get("rewritten_query", message)
             
             # Cập nhật intent nếu LLM phân tích
-            if fast_intent in ["CLINIC_INFO", "GENERAL", "MEDICAL_QA", "EMERGENCY"] and not needs_rewrite:
+            if fast_intent and not needs_rewrite and not is_booking:
                 intent = fast_intent
             else:
                 intent = analysis.get("intent", fast_intent or "GENERAL")
@@ -319,20 +361,60 @@ Kết quả:"""
         else:
             intent = fast_intent
             
-        print(f"DEBUG: fast_intent={fast_intent}, final_intent={intent}, params={params}")
+        if intent == "BOOKING":
+            memory_params["is_booking"] = True
+            is_booking = True
+            
+        # Bắt buộc khóa luồng lại nếu đang đặt lịch dở dang
+        if is_booking:
+            if intent not in ["BOOKING", "GENERAL"] and not (memory_params.get("time_slot") and not memory_params.get("symptoms") and len(message.split()) < 10):
+                memory_params["confirming_cancel"] = True
+                memory_params["pending_message"] = message
+                self._session_params[session_id] = memory_params
+                intent = "CONFIRM_CANCEL" # Special bypass
+            else:
+                intent = "BOOKING"
+                # Nếu đã chọn được giờ mà chưa có triệu chứng, gán message hiện tại thành triệu chứng
+                if memory_params.get("time_slot") and not memory_params.get("symptoms"):
+                    params["symptoms"] = message.strip()
+            
+        merged_params = memory_params.copy()
+        params = merged_params
+        
+        # Lưu lại vào session memory cho các lượt sau
+        self._session_params[session_id] = params
+
             
         # Xử lý lấy bối cảnh (Knowledge/Tools)
         knowledge = ""
         if intent == "BOOKING":
             knowledge = self._execute_booking_flow(params, date_str=params.get("date"), time_slot=params.get("time_slot"), access_token=access_token)
+            if "[DIRECT_REPLY] Đặt lịch thành công" in knowledge:
+                self._session_params.pop(session_id, None)
+        elif intent == "CONFIRM_CANCEL":
+            knowledge = "[DIRECT_REPLY] Bạn đang trong quá trình đặt lịch khám. Nếu chuyển sang chủ đề khác, quá trình đặt lịch hiện tại sẽ bị hủy. Bạn muốn:\n👉 Gõ **'Tiếp tục'** để nghe tư vấn (Hủy đặt lịch)\n👉 Gõ **'Quay lại'** để tiếp tục đặt lịch"
+        elif intent == "PERSONAL_RECORD":
+            if not access_token or access_token == "null" or access_token == "undefined":
+                return "Dạ, để xem hồ sơ bệnh án, bạn vui lòng đăng nhập vào tài khoản trên web hoặc app nhé."
+            from app.tools.clinic_tools import get_medical_records_tool
+            knowledge = get_medical_records_tool.invoke({"access_token": access_token})
+            if "Lỗi 403" in knowledge:
+                return "Dạ, phiên đăng nhập của bạn đã hết hạn hoặc không hợp lệ. Bạn vui lòng đăng xuất và đăng nhập lại trên ứng dụng để tôi có thể tải hồ sơ cho bạn nhé!"
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
                 knowledge = get_doctors_tool.invoke(params)
-            elif "bác sĩ" in search_query.lower():
+            elif "bác sĩ" in message.lower():
                 knowledge = get_doctors_tool.invoke({})
             else:
                 knowledge = get_specialties_tool.invoke({})
+        elif intent == "CLINIC_INFO":
+            from app.tools.clinic_tools import get_services_tool, get_clinic_info_tool
+            msg_lower = message.lower()
+            if any(kw in msg_lower for kw in ["giá", "dịch vụ", "xét nghiệm", "chi phí", "bao nhiêu"]):
+                knowledge = get_services_tool.invoke({"featured_only": False})
+            else:
+                knowledge = get_clinic_info_tool.invoke({})
         else:
             knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
 
@@ -345,13 +427,18 @@ Kết quả:"""
         print("=" * 80)
 
         token = self._resolve_token(session_id, access_token)
-        reply = self.llm_service.chat(
-            user_message=message,
-            history=history,
-            knowledge_context=knowledge,
-            access_token=token,
-            intent=intent,
-        )
+        
+        if knowledge and knowledge.startswith("[DIRECT_REPLY]"):
+            reply = knowledge.replace("[DIRECT_REPLY]", "").strip()
+        else:
+            reply = self.llm_service.chat(
+                user_message=message,
+                history=history,
+                knowledge_context=knowledge,
+                access_token=token,
+                intent=intent,
+            )
+        
         total_time = time.time() - start_time
         print(f"[METRIC] Total Response Time: {total_time:.2f} seconds")
         print("=" * 80)
@@ -368,55 +455,7 @@ Kết quả:"""
         start_time = time.time()
         history = self._get_history(session_id)
         
-        # [SEMANTIC CACHE OPTIMIZATION] - Tối ưu 2
-        msg_lower = message.lower().strip()
-        if "lịch làm việc" in msg_lower or "giờ làm việc" in msg_lower:
-            cached_response_sse = "Thông tin giờ làm việc của ClinicPro:\\n- **07:30 đến 17:00** từ Thứ 2 đến Thứ 7.\\n- **Nghỉ Chủ Nhật** (chỉ nhận cấp cứu trực tiếp).\\n\\nBạn muốn tôi hỗ trợ đặt lịch khám vào ngày nào?"
-            yield cached_response_sse
-            self._append_history(session_id, message, cached_response_sse.replace('\\n', '\n'))
-            return
-            
-        if any(k in msg_lower for k in ["chi phí khám", "bảng giá", "giá khám", "giá tiền"]):
-            cached_response_sse = "Dưới đây là chi phí một số gói dịch vụ nổi bật tại ClinicPro:\\n- Gói Xét Nghiệm Sinh Hóa Cơ Bản Tại Nhà: 616.481 VNĐ\\n- Gói Xét Nghiệm Tầm Soát Ung Thư Nữ Giới: 1.930.000 VNĐ\\n- Gói Xét Nghiệm Tổng Quát: 2.300.000 VNĐ\\n\\nBạn cần xem giá của dịch vụ hay chuyên khoa cụ thể nào khác không?"
-            yield cached_response_sse
-            self._append_history(session_id, message, cached_response_sse.replace('\\n', '\n'))
-            return
-
-        if "chuyên khoa" in msg_lower:
-            try:
-                from app.clients.backend_client import BackendClient
-                client = BackendClient()
-                specialties = client.get_specialties()
-                spec_list = "\\n".join([f"- {s.get('expertiseName', 'Khác')}" for s in specialties if s.get('expertiseName')])
-                cached_response_sse = f"Hiện tại ClinicPro đang có các chuyên khoa sau:\\n{spec_list}\\n\\nBạn cần đặt lịch khám chuyên khoa nào ạ?"
-            except Exception:
-                cached_response_sse = "Phòng khám chúng tôi hiện có các chuyên khoa:\\n- Nội khoa\\n- Ngoại khoa\\n- Nhi khoa\\n- Sản phụ khoa\\n- Da liễu\\n- Tai Mũi Họng\\n- Răng Hàm Mặt\\n- Mắt\\n\\nBạn cần đặt lịch khám chuyên khoa nào ạ?"
-            yield cached_response_sse
-            self._append_history(session_id, message, cached_response_sse.replace('\\n', '\n'))
-            return
-
-        if "hồ sơ" in msg_lower or "bệnh án" in msg_lower:
-            if not access_token:
-                cached_response_sse = "Vui lòng đăng nhập trên ứng dụng để tôi có thể kiểm tra hồ sơ bệnh án của bạn nhé."
-            else:
-                try:
-                    from app.clients.backend_client import BackendClient
-                    client = BackendClient()
-                    records = client.get_my_medical_records(access_token)
-                    if not records:
-                        cached_response_sse = "Hệ thống chưa ghi nhận hồ sơ bệnh án nào của bạn."
-                    else:
-                        latest = sorted(records, key=lambda x: x.get('createdAt', ''), reverse=True)[0]
-                        date = latest.get("createdAt", "")[:10]
-                        diag = latest.get("diagnosis", "Chưa có chẩn đoán")
-                        doc_name = latest.get("mainDoctorName", "Bác sĩ ClinicPro")
-                        cached_response_sse = f"Bạn có 1 hồ sơ khám gần nhất vào ngày {date}:\\n- Bác sĩ phụ trách: {doc_name}\\n- Chẩn đoán: {diag}\\n\\nBạn có thể vào mục 'Hồ sơ' để xem chi tiết hơn nhé."
-                except Exception as e:
-                    cached_response_sse = "Hiện tại không thể tải hồ sơ của bạn. Bạn vui lòng vào mục 'Hồ sơ' trên ứng dụng để kiểm tra chi tiết nhé."
-            
-            yield cached_response_sse
-            self._append_history(session_id, message, cached_response_sse.replace('\\n', '\n'))
-            return
+        # Đã loại bỏ Cache cứng theo yêu cầu, AI sẽ tự trả lời tự nhiên qua LLM
         
         fast_intent = self.router_service.get_rule_based_intent(message)
         search_query = message
@@ -425,11 +464,52 @@ Kết quả:"""
         
         needs_rewrite = self._should_rewrite_query(message, history)
         
-        if needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent:
+        msg_lower = message.lower().strip()
+        generic_phrases = [
+            "đặt lịch", "đặt khám", "đặt lịch khám", "đặt lịch khám bệnh", "tôi muốn đặt lịch", "cho tôi đặt lịch",
+            "bác sĩ", "danh sách bác sĩ", "tìm bác sĩ", 
+            "khoa nào", "khám khoa nào"
+        ]
+        skip_analyze = msg_lower in generic_phrases
+        
+        memory_params = self._session_params.setdefault(session_id, {})
+        is_booking = memory_params.get("is_booking", False) or bool(memory_params.get("target_type"))
+        confirming_cancel = memory_params.get("confirming_cancel", False)
+
+        msg_lower = message.lower().strip()
+        
+        if confirming_cancel:
+            if "tiếp tục" in msg_lower or "tiep tuc" in msg_lower or msg_lower in ["có", "co", "thoát", "hủy"]:
+                pending_message = memory_params.get("pending_message", message)
+                self.clear_session(session_id)
+                memory_params = self._session_params.setdefault(session_id, {})
+                is_booking = False
+                message = pending_message
+                msg_lower = message.lower().strip()
+            elif "quay lại" in msg_lower or "quay lai" in msg_lower or "không" in msg_lower:
+                memory_params["confirming_cancel"] = False
+                self._session_params[session_id] = memory_params
+                # Continue as if they didn't interrupt
+                intent = "BOOKING"
+                msg_lower = "quay lại" # just a safe fallback to trigger the booking flow again
+            else:
+                self.clear_session(session_id)
+                memory_params = self._session_params.setdefault(session_id, {})
+                is_booking = False
+
+        cancel_keywords = ["hủy đặt", "không đặt", "dừng đặt", "cancel booking"]
+        if is_booking and any(k in msg_lower for k in cancel_keywords):
+            self.clear_session(session_id)
+            is_booking = False
+            # We need to return this properly in the stream/send method, let's just clear session and let the LLM reply or hardcode it
+            message = "hủy đặt lịch thành công"
+            msg_lower = message.lower()
+
+        if (is_booking or needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent) and not skip_analyze:
             analysis = self.analyzer_service.analyze(message, history)
             search_query = analysis.get("rewritten_query", message)
             
-            if fast_intent in ["CLINIC_INFO", "GENERAL", "MEDICAL_QA", "EMERGENCY"] and not needs_rewrite:
+            if fast_intent and not needs_rewrite and not is_booking:
                 intent = fast_intent
             else:
                 intent = analysis.get("intent", fast_intent or "GENERAL")
@@ -438,19 +518,61 @@ Kết quả:"""
         else:
             intent = fast_intent
             
-        print(f"DEBUG (STREAM): fast_intent={fast_intent}, final_intent={intent}, params={params}")
+        if intent == "BOOKING":
+            memory_params["is_booking"] = True
+            is_booking = True
+            
+        # Bắt buộc khóa luồng lại nếu đang đặt lịch dở dang
+        if is_booking:
+            if intent not in ["BOOKING", "GENERAL"] and not (memory_params.get("time_slot") and not memory_params.get("symptoms") and len(message.split()) < 10):
+                memory_params["confirming_cancel"] = True
+                memory_params["pending_message"] = message
+                self._session_params[session_id] = memory_params
+                intent = "CONFIRM_CANCEL" # Special bypass
+            else:
+                intent = "BOOKING"
+                # Nếu đã chọn được giờ mà chưa có triệu chứng, gán message hiện tại thành triệu chứng
+                if memory_params.get("time_slot") and not memory_params.get("symptoms"):
+                    params["symptoms"] = message.strip()
+            
+        merged_params = memory_params.copy()
+        merged_params.update(params)
+        params = merged_params
+        
+        # Lưu lại vào session memory cho các lượt sau
+        self._session_params[session_id] = params
             
         knowledge = ""
         if intent == "BOOKING":
             knowledge = self._execute_booking_flow(params, date_str=params.get("date"), time_slot=params.get("time_slot"), access_token=access_token)
+            if "[DIRECT_REPLY] Đặt lịch thành công" in knowledge:
+                self._session_params.pop(session_id, None)
+        elif intent == "CONFIRM_CANCEL":
+            knowledge = "[DIRECT_REPLY] Bạn đang trong quá trình đặt lịch khám. Nếu chuyển sang chủ đề khác, quá trình đặt lịch hiện tại sẽ bị hủy. Bạn muốn:\n👉 Gõ **'Tiếp tục'** để nghe tư vấn (Hủy đặt lịch)\n👉 Gõ **'Quay lại'** để tiếp tục đặt lịch"
+        elif intent == "PERSONAL_RECORD":
+            if not access_token or access_token == "null" or access_token == "undefined":
+                yield "Dạ, để xem hồ sơ bệnh án, bạn vui lòng đăng nhập vào tài khoản trên web hoặc app nhé."
+                return
+            from app.tools.clinic_tools import get_medical_records_tool
+            knowledge = get_medical_records_tool.invoke({"access_token": access_token})
+            if "Lỗi 403" in knowledge:
+                yield "Dạ, phiên đăng nhập của bạn đã hết hạn hoặc không hợp lệ. Bạn vui lòng đăng xuất và đăng nhập lại trên ứng dụng để tôi có thể tải hồ sơ cho bạn nhé!"
+                return
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
                 knowledge = get_doctors_tool.invoke(params)
-            elif "bác sĩ" in search_query.lower():
+            elif "bác sĩ" in message.lower():
                 knowledge = get_doctors_tool.invoke({})
             else:
                 knowledge = get_specialties_tool.invoke({})
+        elif intent == "CLINIC_INFO":
+            from app.tools.clinic_tools import get_services_tool, get_clinic_info_tool
+            msg_lower = message.lower()
+            if any(kw in msg_lower for kw in ["giá", "dịch vụ", "xét nghiệm", "chi phí", "bao nhiêu"]):
+                knowledge = get_services_tool.invoke({"featured_only": False})
+            else:
+                knowledge = get_clinic_info_tool.invoke({})
         else:
             knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
         
@@ -466,20 +588,25 @@ Kết quả:"""
         chunks: list[str] = []
         is_first_token = True
 
-        for chunk in self.llm_service.stream_chat(
-            user_message=message,
-            history=history,
-            knowledge_context=knowledge,
-            access_token=token,
-            intent=intent,
-        ):
-            if is_first_token:
-                ttft = time.time() - start_time
-                print(f"[METRIC] Time To First Token (TTFT): {ttft:.2f} seconds")
-                is_first_token = False
-                
-            chunks.append(chunk)
-            yield chunk
+        if knowledge and knowledge.startswith("[DIRECT_REPLY]"):
+            reply = knowledge.replace("[DIRECT_REPLY]", "").strip()
+            chunks.append(reply)
+            yield reply
+        else:
+            for chunk in self.llm_service.stream_chat(
+                user_message=message,
+                history=history,
+                knowledge_context=knowledge,
+                access_token=token,
+                intent=intent,
+            ):
+                if is_first_token:
+                    ttft = time.time() - start_time
+                    print(f"[METRIC] Time To First Token (TTFT): {ttft:.2f} seconds")
+                    is_first_token = False
+                    
+                chunks.append(chunk)
+                yield chunk
 
         total_time = time.time() - start_time
         print(f"[METRIC] Total Stream Time: {total_time:.2f} seconds")
@@ -492,3 +619,4 @@ Kết quả:"""
     def clear_session(self, session_id: str) -> None:
         self._sessions.pop(session_id, None)
         self._session_tokens.pop(session_id, None)
+        self._session_params.pop(session_id, None)

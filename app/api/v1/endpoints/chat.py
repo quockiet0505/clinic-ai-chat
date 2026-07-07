@@ -32,7 +32,8 @@ async def stream_message(request: ChatRequest):
                 session_id=request.session_id,
                 access_token=request.access_token,
             ):
-                yield f"data: {chunk}\n\n"
+                formatted_chunk = str(chunk).replace('\n', '\\n')
+                yield f"data: {formatted_chunk}\n\n"
         except LLMServiceError as exc:
             yield f"data: [ERROR] {exc}\n\n"
 

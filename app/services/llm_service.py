@@ -20,29 +20,13 @@ class LLMService:
 
     def __init__(self):
         try:
-            # 1. Luôn khởi tạo Ollama Local cho các tác vụ chung (Booking, Doctor Info, v.v.)
             self.ollama_llm = ChatOllama(
                 model=settings.MODEL_NAME,
                 base_url=settings.OLLAMA_BASE_URL,
                 temperature=settings.LLM_TEMPERATURE,
+            num_ctx=4096,
             )
             logger.info(f"Khởi tạo Ollama Local (model={settings.MODEL_NAME})")
-
-            # 2. Tùy chọn khởi tạo Modal (Fine-tuned) cho MEDICAL_QA / FAQ
-            self.modal_llm = None
-            if getattr(settings, "USE_MODAL_LLM", False):
-                from langchain_openai import ChatOpenAI
-                base_url = settings.MODAL_BASE_URL.rstrip('/')
-                if not base_url.endswith('/v1'):
-                    base_url = f"{base_url}/v1"
-                    
-                self.modal_llm = ChatOpenAI(
-                    model=settings.MODAL_MODEL_NAME,
-                    base_url=base_url,
-                    api_key=settings.MODAL_API_KEY or "EMPTY",
-                    temperature=settings.LLM_TEMPERATURE,
-                )
-                logger.info(f"Khởi tạo Modal LLM (model={settings.MODAL_MODEL_NAME}) thành công")
         except Exception as exc:
             logger.error(f"Lỗi khởi tạo LLM: {exc}")
             raise LLMServiceError("Không thể kết nối đến AI Service") from exc
@@ -72,18 +56,26 @@ class LLMService:
 - Chỉ chia sẻ thông tin y khoa mang tính chất THAM KHẢO dựa trên CONTEXT.
 - BẮT BUỘC khuyên bệnh nhân đến phòng khám để bác sĩ chuyên khoa khám trực tiếp.
 """
-        elif intent in ["DOCTOR_INFO", "CLINIC_INFO", "CLINIC_SYMPTOM", "BOOKING"]:
+        elif intent == "BOOKING":
+            content += """LƯU Ý ĐẶC BIỆT (BOOKING INTENT):
+- Hệ thống đã xử lý logic và cung cấp chỉ thị dưới dạng CONTEXT.
+- BẠN BẮT BUỘC PHẢI ĐỌC KỸ CONTEXT VÀ CHỈ HỎI/TRẢ LỜI ĐÚNG NHỮNG GÌ CONTEXT YÊU CẦU.
+- TUYỆT ĐỐI KHÔNG TỰ Ý HỎI THÊM CÁC THÔNG TIN NHƯ "CHUYÊN KHOA", "GIỜ KHÁM", "BÁC SĨ" NẾU CONTEXT KHÔNG NHẮC TỚI.
+- NGAY CẢ KHI NGƯỜI DÙNG CUNG CẤP TRIỆU CHỨNG, BẠN CŨNG KHÔNG ĐƯỢC PHÉP ĐÓNG VAI BÁC SĨ ĐỂ TƯ VẤN Y KHOA.
+- VĂN PHONG: Trả lời tự nhiên, lịch sự, thân thiện nhưng vẫn phải ngắn gọn.
+"""
+        elif intent in ["DOCTOR_INFO", "CLINIC_INFO", "CLINIC_SYMPTOM", "PERSONAL_RECORD"]:
             content += """LƯU Ý ĐẶC BIỆT (PIPELINE INTENT):
 - Hệ thống đã tự động chạy Code Python để trích xuất dữ liệu từ Backend và nạp vào phần CONTEXT bên dưới.
 - Nhiệm vụ của bạn LÀ ĐỌC CONTEXT VÀ TRẢ LỜI NGƯỜI DÙNG BẰNG NGÔN NGỮ TỰ NHIÊN. LUÔN LUÔN TRẢ LỜI BẰNG TIẾNG VIỆT.
 - TUYỆT ĐỐI KHÔNG TỰ BỊA RA (HALLUCINATE) BÁC SĨ, GIÁ TIỀN, HAY LỊCH TRỐNG. Chỉ nói những gì có trong CONTEXT.
 - Nếu CONTEXT có chứa chỉ thị "CHỈ THỊ CHO AI:", hãy làm theo chỉ thị đó một cách tự nhiên (Ví dụ: hỏi thêm thông tin ngày giờ, triệu chứng).
 - Bạn KHÔNG ĐƯỢC gọi Tool nào cả, chỉ cần nói chuyện với người dùng.
-- KHI LIỆT KÊ (Ví dụ: danh sách dịch vụ, giá tiền, tên bác sĩ...), mỗi mục phải nằm trên 1 dòng riêng. TUYỆT ĐỐI KHÔNG tự ngắt dòng ở giữa câu nếu câu đó có chứa dấu gạch ngang (-).
+- VĂN PHONG: Trả lời tự nhiên, lịch sự, thân thiện nhưng vẫn phải ngắn gọn.
+- NGUYÊN TẮC XUỐNG DÒNG DÀNH CHO DANH SÁCH: Khi có danh sách (VD: bắt đầu bằng dấu gạch ngang), BẠN BẮT BUỘC PHẢI GIỮ NGUYÊN DẤU GẠCH NGANG VÀ NHẤN ENTER XUỐNG DÒNG cho từng mục. Tuyệt đối không được viết dính chùm tất cả các mục trên cùng một dòng.
 """
 
         content += "\n" + load_system_prompt()
-        content += "\n\nCRITICAL: KHI TRẢ LỜI CÓ DANH SÁCH LIỆT KÊ (1. 2. 3. hoặc dấu chấm/gạch đầu dòng), BẠN BẮT BUỘC PHẢI DÙNG KÝ TỰ XUỐNG DÒNG (ENTER) TRƯỚC MỖI MỤC. TUYỆT ĐỐI KHÔNG VIẾT DÍNH CHÙM TRÊN CÙNG MỘT DÒNG."
         return SystemMessage(content=content)
 
     def chat(self, user_message: str, history: list | None = None, knowledge_context: str = "", access_token: str | None = None, intent: str = "GENERAL") -> str:
@@ -92,35 +84,17 @@ class LLMService:
             messages.extend(history)
             
         if knowledge_context.strip():
-            # [HOTFIX] Replace hyphen with comma to prevent small LLMs from misinterpreting it as markdown lists
-            safe_context = knowledge_context.strip().replace(" - ", ", ")
             if intent == "MEDICAL_QA":
-                prompt = f"""===== TÀI LIỆU Y KHOA THAM KHẢO =====
-Dưới đây là các câu hỏi/đáp y khoa để bạn tham khảo. KHÔNG PHẢI là hồ sơ của người dùng.
-Hãy dùng kiến thức này để khuyên họ:
-{safe_context}
-=================================="""
+                user_content = f"Kiến thức y khoa (ẩn):\n{knowledge_context.strip()}\n\nCâu hỏi của tôi: {user_message}\n\nHãy tư vấn cho tôi một cách tự nhiên (tuyệt đối không chẩn đoán bệnh, không nhắc đến việc bạn có kiến thức ẩn)."
             else:
-                prompt = f"""===== CONTEXT TỪ HỆ THỐNG =====
-Đọc kỹ dữ liệu và các CHỈ THỊ CHO AI (nếu có) dưới đây để trả lời người dùng:
-{safe_context}
-==============================="""
-            messages.append(HumanMessage(content=prompt))
-            
-        messages.append(HumanMessage(content=user_message))
+                user_content = f"Thông tin nội bộ (ẩn):\n{knowledge_context.strip()}\n\nCâu hỏi của tôi: {user_message}\n\nHãy trả lời tôi một cách tự nhiên (không nhắc đến việc bạn có thông tin nội bộ)."
+            messages.append(HumanMessage(content=user_content))
+        else:
+            messages.append(HumanMessage(content=user_message))
 
         try:
-            # Hybrid Routing: Dùng Model Fine-tune cho QA, Ollama cho Booking/Info
-            active_llm = self.ollama_llm
-            if self.modal_llm and intent == "MEDICAL_QA":
-                active_llm = self.modal_llm
-                
-            ai_msg = active_llm.invoke(messages)
+            ai_msg = self.ollama_llm.invoke(messages)
             content = str(ai_msg.content)
-            
-            import re
-            # Fix lỗi Qwen 3B không chịu xuống dòng cho danh sách: chỉ bẻ dòng nếu phía trước là khoảng trắng và phía sau là ** (danh sách in đậm)
-            content = re.sub(r'(?<!\n)( - \*\*)', r'\n\1', content)
             
             return content
         except Exception as exc:
@@ -132,30 +106,16 @@ Hãy dùng kiến thức này để khuyên họ:
             messages.extend(history)
             
         if knowledge_context.strip():
-            # [HOTFIX] Replace hyphen with comma to prevent small LLMs from misinterpreting it as markdown lists
-            safe_context = knowledge_context.strip().replace(" - ", ", ")
             if intent == "MEDICAL_QA":
-                prompt = f"""===== TÀI LIỆU Y KHOA THAM KHẢO =====
-Dưới đây là các câu hỏi/đáp y khoa để bạn tham khảo. KHÔNG PHẢI là hồ sơ của người dùng.
-Hãy dùng kiến thức này để khuyên họ:
-{safe_context}
-=================================="""
+                user_content = f"Kiến thức y khoa (ẩn):\n{knowledge_context.strip()}\n\nCâu hỏi của tôi: {user_message}\n\nHãy tư vấn cho tôi một cách tự nhiên (tuyệt đối không chẩn đoán bệnh, không nhắc đến việc bạn có kiến thức ẩn)."
             else:
-                prompt = f"""===== CONTEXT TỪ HỆ THỐNG =====
-Đọc kỹ dữ liệu và các CHỈ THỊ CHO AI (nếu có) dưới đây để trả lời người dùng:
-{safe_context}
-==============================="""
-            messages.append(HumanMessage(content=prompt))
-            
-        messages.append(HumanMessage(content=user_message))
+                user_content = f"Thông tin nội bộ (ẩn):\n{knowledge_context.strip()}\n\nCâu hỏi của tôi: {user_message}\n\nHãy trả lời tôi một cách tự nhiên (không nhắc đến việc bạn có thông tin nội bộ)."
+            messages.append(HumanMessage(content=user_content))
+        else:
+            messages.append(HumanMessage(content=user_message))
 
         try:
-            # Hybrid Routing: Dùng Model Fine-tune cho QA, Ollama cho Booking/Info
-            active_llm = self.ollama_llm
-            if self.modal_llm and intent == "MEDICAL_QA":
-                active_llm = self.modal_llm
-                
-            for chunk in active_llm.stream(messages):
+            for chunk in self.ollama_llm.stream(messages):
                 yield chunk.content
         except Exception as exc:
             logger.error(f"Stream error: {exc}")

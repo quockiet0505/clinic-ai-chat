@@ -11,12 +11,6 @@ class Settings(BaseSettings):
     LLM_MAX_TOKENS: int = 500
     CORS_ORIGINS: str = "*"
 
-    # Modal LLM (Fine-tuned model)
-    USE_MODAL_LLM: bool = False
-    MODAL_BASE_URL: str = ""
-    MODAL_API_KEY: str = "super-secret-token"
-    MODAL_MODEL_NAME: str = "clinic-ai-finetuned"
-
     # Light RAG: tra cứu FAQ tĩnh từ thư mục knowledge/
     RAG_ENABLED: bool = True
     RAG_TOP_K: int = 5

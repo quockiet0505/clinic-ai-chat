@@ -78,6 +78,11 @@ Hãy in ra 1 từ khóa:"""
         if any(kw in msg_lower for kw in ["khoa nào", "khoa gì", "ở khoa", "bác sĩ nào"]):
             return "CLINIC_SYMPTOM"
             
+        # PERSONAL_RECORD rules
+        record_keywords = ["hồ sơ bệnh án", "kết quả khám", "lịch sử khám", "bệnh án của tôi", "kết quả xét nghiệm"]
+        if any(kw in msg_lower for kw in record_keywords):
+            return "PERSONAL_RECORD"
+            
         # CLINIC_INFO rules
         clinic_info_keywords = ["giá", "bao nhiêu tiền", "chi phí", "xét nghiệm", "gói khám", "dịch vụ", "giờ làm việc", "lịch làm việc", "mấy giờ", "mở cửa", "đóng cửa", "khám giờ nào", "làm việc giờ nào", "địa chỉ", "ở đâu", "đường nào", "thanh toán", "hotline", "số điện thoại", "phòng khám có"]
         if any(kw in msg_lower for kw in clinic_info_keywords):

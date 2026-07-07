@@ -18,6 +18,7 @@ class QueryAnalyzerService:
             model=settings.MODEL_NAME,
             base_url=settings.OLLAMA_BASE_URL,
             temperature=0.0,
+            num_ctx=4096,
             format="json",
         )
 
@@ -38,15 +39,18 @@ Các Intent hợp lệ:
 1. EMERGENCY: Khẩn cấp, nguy hiểm tính mạng.
 2. BOOKING: Yêu cầu đặt lịch khám, hẹn ngày giờ, xem lịch trống.
 3. CLINIC_SYMPTOM: Hỏi phòng khám có khoa nào khám bệnh abc.
-4. DOCTOR_INFO: Hỏi thông tin về bác sĩ, chuyên khoa.
+4. DOCTOR_INFO: Hỏi thông tin về bác sĩ, chuyên khoa (chỉ khi HỎI THÔNG TIN, nếu đang trong luồng ĐẶT LỊCH mà cung cấp tên bác sĩ thì intent phải là BOOKING).
 5. CLINIC_INFO: Hỏi thông tin phòng khám, giá tiền, giờ làm việc.
 6. MEDICAL_QA: Xin tư vấn y khoa, thuốc men, bệnh lý.
-7. GENERAL: Chào hỏi thông thường, CÂU HỎI NGOÀI LỀ, KHÔNG LIÊN QUAN ĐẾN Y TẾ HOẶC PHÒNG KHÁM, KHÔNG RÕ NGHĨA.
+7. PERSONAL_RECORD: Hỏi về hồ sơ bệnh án, kết quả khám của bản thân.
+8. GENERAL: Chào hỏi thông thường, CÂU HỎI NGOÀI LỀ, KHÔNG LIÊN QUAN ĐẾN Y TẾ HOẶC PHÒNG KHÁM, KHÔNG RÕ NGHĨA.
+
+QUAN TRỌNG: Nếu lịch sử hội thoại cho thấy người dùng ĐANG TRONG QUÁ TRÌNH ĐẶT LỊCH (ví dụ AI đang hỏi ngày giờ, hỏi chuyên khoa, hỏi tên bác sĩ để đặt) và người dùng trả lời (ví dụ cung cấp tên bác sĩ "Lê Tuấn", cung cấp ngày), thì Intent BẮT BUỘC phải tiếp tục là BOOKING, KHÔNG được chuyển sang DOCTOR_INFO.
 
 Yêu cầu JSON có cấu trúc sau:
 {{
     "rewritten_query": "Câu hỏi viết lại đầy đủ ngữ cảnh (nếu câu gốc bị thiếu chủ ngữ/vị ngữ, nếu đã rõ thì giữ nguyên câu gốc)",
-    "intent": "MỘT_TRONG_7_INTENT",
+    "intent": "MỘT_TRONG_8_INTENT",
     "parameters": {{
         "doctor_name": "Tên bác sĩ (nếu có)",
         "expertise_name": "Tên chuyên khoa (nếu có)",

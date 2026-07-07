@@ -154,3 +154,34 @@ def get_clinic_info_tool() -> str:
 - Hotline: 1900 2115
 - Email: cskh@clinic.com
 - Giờ làm việc: 07:30 – 17:00 từ Thứ 2 đến Thứ 7 (Nghỉ Chủ Nhật)"""
+
+@tool
+def get_medical_records_tool(access_token: str | None = None) -> str:
+    """
+    Dùng khi người dùng hỏi về hồ sơ bệnh án hoặc kết quả khám bệnh của chính họ.
+    """
+    if not access_token:
+        return "Lỗi: Khách chưa đăng nhập."
+        
+    client = BackendClient()
+    try:
+        raw_records = client.get_my_medical_records(access_token=access_token)
+        if not raw_records:
+            return "HỆ THỐNG BÁO: Hiện tại bạn chưa có hồ sơ bệnh án nào trong hệ thống."
+            
+        lines = ["Danh sách hồ sơ bệnh án của bạn:"]
+        for r in raw_records[:5]:
+            lines.append(f"- Ngày khám: {r.get('date', 'N/A')}")
+            lines.append(f"  Bác sĩ: {r.get('doctorName', 'N/A')}")
+            lines.append(f"  Chẩn đoán: {r.get('diagnosis', 'N/A')}")
+            lines.append(f"  Ghi chú: {r.get('note', 'Không có')}")
+            
+        return "\n".join(lines)
+    except BackendClientError as e:
+        error_msg = str(e)
+        if "403" in error_msg or "401" in error_msg:
+            return "Lỗi 403: Phiên đăng nhập hết hạn."
+        return f"Lỗi Backend: {error_msg}."
+    except Exception as e:
+        return str(e)
+
