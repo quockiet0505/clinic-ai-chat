@@ -15,16 +15,16 @@ class ResponseFormatter:
 
     @staticmethod
     def format_specialties(specialties: List[Specialty]) -> str:
-        lines = ["Dạ, dưới đây là danh sách các chuyên khoa tại phòng khám ClinicPro:"]
+        lines = ["Dạ, dưới đây là một số chuyên khoa tại phòng khám ClinicPro:"]
         for spec in specialties[:10]:
             lines.append(f"- Chuyên khoa {spec.name}")
         if len(specialties) > 10:
-            lines.append("\nCòn nhiều chuyên khoa khác.....")
+            lines.append(f"\n(...và {len(specialties) - 10} chuyên khoa khác.) Bạn đang cần khám chuyên khoa nào ạ?")
         return "\n".join(lines)
 
     @staticmethod
     def format_doctors(doctors: List[Doctor]) -> str:
-        lines = ["Dạ, đây là danh sách các bác sĩ theo yêu cầu của bạn:"]
+        lines = ["Dạ, đây là một số bác sĩ tại phòng khám ClinicPro:"]
         for doc in doctors[:10]:
             extra = []
             if doc.rating is not None:
@@ -44,8 +44,7 @@ class ResponseFormatter:
             lines.append(f"- {formatted_name}{fee_str}\n  Chuyên khoa: {doc.expertise}{suffix}")
         
         if len(doctors) > 10:
-            lines.append("\nCòn nhiều bác sĩ khác.....")
-            
+            lines.append(f"\n(...và {len(doctors) - 10} bác sĩ khác.) Bạn muốn tìm bác sĩ theo chuyên khoa nào ạ?")
         return "\n".join(lines)
 
     @staticmethod
@@ -59,10 +58,8 @@ class ResponseFormatter:
             if srv.description:
                 line += f"\n  Mô tả: {srv.description[:100]}..."
             lines.append(line)
-            
         if len(services) > 10:
-            lines.append("\nCòn nhiều dịch vụ khác.....")
-            
+            lines.append(f"\n(...và {len(services) - 10} dịch vụ khác.) Bạn muốn biết thêm dịch vụ nào ạ?")
         return "\n".join(lines)
 
     @staticmethod

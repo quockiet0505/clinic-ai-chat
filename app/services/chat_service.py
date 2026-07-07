@@ -28,7 +28,8 @@ class ChatService:
         self._session_params: dict[str, dict] = {}
 
     def _get_history(self, session_id: str) -> list:
-        return self._sessions.get(session_id, [])
+        history = self._sessions.get(session_id, [])
+        return history[-6:] if len(history) > 6 else history
 
     def _append_history(self, session_id: str, user_message: str, assistant_reply: str) -> None:
         history = self._sessions.setdefault(session_id, [])
@@ -87,9 +88,6 @@ class ChatService:
             # Cập nhật ngược lại state để session lưu lại
             state["target_type"] = target_t
 
-        if not access_token or access_token == "null" or access_token == "undefined":
-            return "[DIRECT_REPLY] Bạn vui lòng đăng nhập hoặc đăng ký tài khoản trước khi đặt lịch nhé."
-            
         target_name = doctor_name if target_t == "DOCTOR" else service_name
 
         from app.clients.backend_client import BackendClient
@@ -164,7 +162,7 @@ class ChatService:
                 
             if not symptoms:
                 return "[DIRECT_REPLY] Để hoàn tất hồ sơ, xin bạn mô tả ngắn gọn triệu chứng đang gặp phải hoặc lý do đi khám nhé."
-            if not access_token:
+            if not access_token or access_token == "null" or access_token == "undefined":
                 return "[DIRECT_REPLY] Bạn vui lòng đăng nhập tài khoản trên web/app để hoàn tất đặt lịch nhé."
                 
             time_start = time_slot.split(" - ")[0].strip()
@@ -310,7 +308,9 @@ Kết quả:"""
         generic_phrases = [
             "đặt lịch", "đặt khám", "đặt lịch khám", "đặt lịch khám bệnh", "tôi muốn đặt lịch", "cho tôi đặt lịch",
             "bác sĩ", "danh sách bác sĩ", "tìm bác sĩ", 
-            "khoa nào", "khám khoa nào"
+            "khoa nào", "khám khoa nào",
+            "chuyên khoa", "các chuyên khoa", "danh sách chuyên khoa", "chuyen khoa", "cac chuyen khoa",
+            "giờ làm việc", "phòng khám", "ở đâu", "địa chỉ", "liên hệ", "giá", "dịch vụ"
         ]
         skip_analyze = msg_lower in generic_phrases
         
@@ -328,12 +328,16 @@ Kết quả:"""
                 is_booking = False
                 message = pending_message
                 msg_lower = message.lower().strip()
+                fast_intent = self.router_service.get_rule_based_intent(message)
+                skip_analyze = msg_lower in generic_phrases
             elif "quay lại" in msg_lower or "quay lai" in msg_lower or "không" in msg_lower:
                 memory_params["confirming_cancel"] = False
                 self._session_params[session_id] = memory_params
                 # Continue as if they didn't interrupt
                 intent = "BOOKING"
                 msg_lower = "quay lại" # just a safe fallback to trigger the booking flow again
+                fast_intent = "BOOKING"
+                skip_analyze = True
             else:
                 self.clear_session(session_id)
                 memory_params = self._session_params.setdefault(session_id, {})
@@ -347,7 +351,11 @@ Kết quả:"""
             message = "hủy đặt lịch thành công"
             msg_lower = message.lower()
 
-        if (is_booking or needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent) and not skip_analyze:
+        # Skip analyzer nếu đang booking và fast_intent đã rõ là BOOKING (kể cả câu ngắn)
+        # → tiết kiệm 20-30 giây gọi LLM không cần thiết
+        booking_shortcut = is_booking and fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"]
+
+        if (is_booking or needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent) and not skip_analyze and not booking_shortcut:
             analysis = self.analyzer_service.analyze(message, history)
             search_query = analysis.get("rewritten_query", message)
             
@@ -359,7 +367,7 @@ Kết quả:"""
                 
             params = analysis.get("parameters", {})
         else:
-            intent = fast_intent
+            intent = fast_intent or "BOOKING"
             
         if intent == "BOOKING":
             memory_params["is_booking"] = True
@@ -392,7 +400,7 @@ Kết quả:"""
             if "[DIRECT_REPLY] Đặt lịch thành công" in knowledge:
                 self._session_params.pop(session_id, None)
         elif intent == "CONFIRM_CANCEL":
-            knowledge = "[DIRECT_REPLY] Bạn đang trong quá trình đặt lịch khám. Nếu chuyển sang chủ đề khác, quá trình đặt lịch hiện tại sẽ bị hủy. Bạn muốn:\n👉 Gõ **'Tiếp tục'** để nghe tư vấn (Hủy đặt lịch)\n👉 Gõ **'Quay lại'** để tiếp tục đặt lịch"
+            knowledge = "[DIRECT_REPLY] Bạn đang trong quá trình đặt lịch khám. Nếu chuyển sang chủ đề khác, quá trình đặt lịch hiện tại sẽ bị hủy. Bạn muốn:\n__BUTTON:Tiếp tục tư vấn__\n__BUTTON:Quay lại đặt lịch__"
         elif intent == "PERSONAL_RECORD":
             if not access_token or access_token == "null" or access_token == "undefined":
                 return "Dạ, để xem hồ sơ bệnh án, bạn vui lòng đăng nhập vào tài khoản trên web hoặc app nhé."
@@ -403,18 +411,18 @@ Kết quả:"""
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
-                knowledge = get_doctors_tool.invoke(params)
+                knowledge = "[DIRECT_REPLY]\n" + get_doctors_tool.invoke(params)
             elif "bác sĩ" in message.lower():
-                knowledge = get_doctors_tool.invoke({})
+                knowledge = "[DIRECT_REPLY]\n" + get_doctors_tool.invoke({})
             else:
-                knowledge = get_specialties_tool.invoke({})
+                knowledge = "[DIRECT_REPLY]\n" + get_specialties_tool.invoke({})
         elif intent == "CLINIC_INFO":
             from app.tools.clinic_tools import get_services_tool, get_clinic_info_tool
             msg_lower = message.lower()
             if any(kw in msg_lower for kw in ["giá", "dịch vụ", "xét nghiệm", "chi phí", "bao nhiêu"]):
-                knowledge = get_services_tool.invoke({"featured_only": False})
+                knowledge = "[DIRECT_REPLY]\n" + get_services_tool.invoke({"featured_only": False})
             else:
-                knowledge = get_clinic_info_tool.invoke({})
+                knowledge = "[DIRECT_REPLY]\n" + get_clinic_info_tool.invoke({})
         else:
             knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
 
@@ -468,7 +476,9 @@ Kết quả:"""
         generic_phrases = [
             "đặt lịch", "đặt khám", "đặt lịch khám", "đặt lịch khám bệnh", "tôi muốn đặt lịch", "cho tôi đặt lịch",
             "bác sĩ", "danh sách bác sĩ", "tìm bác sĩ", 
-            "khoa nào", "khám khoa nào"
+            "khoa nào", "khám khoa nào",
+            "chuyên khoa", "các chuyên khoa", "danh sách chuyên khoa", "chuyen khoa", "cac chuyen khoa",
+            "giờ làm việc", "phòng khám", "ở đâu", "địa chỉ", "liên hệ", "giá", "dịch vụ"
         ]
         skip_analyze = msg_lower in generic_phrases
         
@@ -486,12 +496,16 @@ Kết quả:"""
                 is_booking = False
                 message = pending_message
                 msg_lower = message.lower().strip()
+                fast_intent = self.router_service.get_rule_based_intent(message)
+                skip_analyze = msg_lower in generic_phrases
             elif "quay lại" in msg_lower or "quay lai" in msg_lower or "không" in msg_lower:
                 memory_params["confirming_cancel"] = False
                 self._session_params[session_id] = memory_params
                 # Continue as if they didn't interrupt
                 intent = "BOOKING"
                 msg_lower = "quay lại" # just a safe fallback to trigger the booking flow again
+                fast_intent = "BOOKING"
+                skip_analyze = True
             else:
                 self.clear_session(session_id)
                 memory_params = self._session_params.setdefault(session_id, {})
@@ -505,7 +519,11 @@ Kết quả:"""
             message = "hủy đặt lịch thành công"
             msg_lower = message.lower()
 
-        if (is_booking or needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent) and not skip_analyze:
+        # Skip analyzer nếu đang booking và fast_intent đã rõ là BOOKING (kể cả câu ngắn)
+        # → tiết kiệm 20-30 giây gọi LLM không cần thiết
+        booking_shortcut = is_booking and fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"]
+
+        if (is_booking or needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent) and not skip_analyze and not booking_shortcut:
             analysis = self.analyzer_service.analyze(message, history)
             search_query = analysis.get("rewritten_query", message)
             
@@ -516,7 +534,7 @@ Kết quả:"""
                 
             params = analysis.get("parameters", {})
         else:
-            intent = fast_intent
+            intent = fast_intent or "BOOKING"
             
         if intent == "BOOKING":
             memory_params["is_booking"] = True
@@ -524,6 +542,9 @@ Kết quả:"""
             
         # Bắt buộc khóa luồng lại nếu đang đặt lịch dở dang
         if is_booking:
+            if intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
+                intent = "BOOKING"
+                
             if intent not in ["BOOKING", "GENERAL"] and not (memory_params.get("time_slot") and not memory_params.get("symptoms") and len(message.split()) < 10):
                 memory_params["confirming_cancel"] = True
                 memory_params["pending_message"] = message
@@ -548,7 +569,7 @@ Kết quả:"""
             if "[DIRECT_REPLY] Đặt lịch thành công" in knowledge:
                 self._session_params.pop(session_id, None)
         elif intent == "CONFIRM_CANCEL":
-            knowledge = "[DIRECT_REPLY] Bạn đang trong quá trình đặt lịch khám. Nếu chuyển sang chủ đề khác, quá trình đặt lịch hiện tại sẽ bị hủy. Bạn muốn:\n👉 Gõ **'Tiếp tục'** để nghe tư vấn (Hủy đặt lịch)\n👉 Gõ **'Quay lại'** để tiếp tục đặt lịch"
+            knowledge = "[DIRECT_REPLY] Bạn đang trong quá trình đặt lịch khám. Nếu chuyển sang chủ đề khác, quá trình đặt lịch hiện tại sẽ bị hủy. Bạn muốn:\n__BUTTON:Tiếp tục tư vấn__\n__BUTTON:Quay lại đặt lịch__"
         elif intent == "PERSONAL_RECORD":
             if not access_token or access_token == "null" or access_token == "undefined":
                 yield "Dạ, để xem hồ sơ bệnh án, bạn vui lòng đăng nhập vào tài khoản trên web hoặc app nhé."
@@ -561,18 +582,18 @@ Kết quả:"""
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
-                knowledge = get_doctors_tool.invoke(params)
+                knowledge = "[DIRECT_REPLY]\n" + get_doctors_tool.invoke(params)
             elif "bác sĩ" in message.lower():
-                knowledge = get_doctors_tool.invoke({})
+                knowledge = "[DIRECT_REPLY]\n" + get_doctors_tool.invoke({})
             else:
-                knowledge = get_specialties_tool.invoke({})
+                knowledge = "[DIRECT_REPLY]\n" + get_specialties_tool.invoke({})
         elif intent == "CLINIC_INFO":
             from app.tools.clinic_tools import get_services_tool, get_clinic_info_tool
             msg_lower = message.lower()
             if any(kw in msg_lower for kw in ["giá", "dịch vụ", "xét nghiệm", "chi phí", "bao nhiêu"]):
-                knowledge = get_services_tool.invoke({"featured_only": False})
+                knowledge = "[DIRECT_REPLY]\n" + get_services_tool.invoke({"featured_only": False})
             else:
-                knowledge = get_clinic_info_tool.invoke({})
+                knowledge = "[DIRECT_REPLY]\n" + get_clinic_info_tool.invoke({})
         else:
             knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
         
