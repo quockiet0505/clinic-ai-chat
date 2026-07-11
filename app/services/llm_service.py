@@ -45,12 +45,9 @@ class LLMService:
 - HÃY KHUYÊN HỌ GỌI CẤP CỨU 115 HOẶC ĐẾN BỆNH VIỆN GẦN NHẤT NGAY LẬP TỨC.
 """
         elif intent == "MEDICAL_QA":
-            content += """LƯU Ý ĐẶC BIỆT (MEDICAL_QA INTENT):
-- Người dùng đang hỏi về vấn đề y khoa, bệnh lý, triệu chứng.
-- BẠN LÀ TRỢ LÝ Y TẾ, KHÔNG PHẢI BÁC SĨ. TUYỆT ĐỐI KHÔNG CHẨN ĐOÁN HAY KÊ ĐƠN.
-- Chỉ chia sẻ thông tin y khoa mang tính chất THAM KHẢO dựa trên CONTEXT.
-- BẮT BUỘC khuyên bệnh nhân đến phòng khám để bác sĩ chuyên khoa khám trực tiếp.
-"""
+            # Ghi đè toàn bộ content bằng System Prompt chuẩn được fine-tune
+            content = "Bạn là một bác sĩ tư vấn y tế ảo của phòng khám ClinicPro. Nhiệm vụ của bạn là tư vấn sức khỏe, giải đáp triệu chứng và đưa ra lời khuyên y khoa an toàn dựa trên chuyên môn."
+            return SystemMessage(content=content)
         elif intent == "BOOKING":
             content += """LƯU Ý ĐẶC BIỆT (BOOKING INTENT):
 - Hệ thống đã xử lý logic và cung cấp chỉ thị dưới dạng CONTEXT.
@@ -80,7 +77,7 @@ class LLMService:
             
         if knowledge_context.strip():
             if intent == "MEDICAL_QA":
-                user_content = f"Kiến thức y khoa (ẩn):\n{knowledge_context.strip()}\n\nCâu hỏi của tôi: {user_message}\n\nHãy tư vấn cho tôi một cách tự nhiên (tuyệt đối không chẩn đoán bệnh, không nhắc đến việc bạn có kiến thức ẩn)."
+                user_content = f"Dựa vào kiến thức y khoa sau:\n{knowledge_context.strip()}\n\nHãy trả lời câu hỏi: {user_message}"
             else:
                 user_content = f"Thông tin nội bộ (ẩn):\n{knowledge_context.strip()}\n\nCâu hỏi của tôi: {user_message}\n\nHãy trả lời tôi một cách tự nhiên (không nhắc đến việc bạn có thông tin nội bộ)."
             messages.append(HumanMessage(content=user_content))
@@ -102,7 +99,7 @@ class LLMService:
             
         if knowledge_context.strip():
             if intent == "MEDICAL_QA":
-                user_content = f"Kiến thức y khoa (ẩn):\n{knowledge_context.strip()}\n\nCâu hỏi của tôi: {user_message}\n\nHãy tư vấn cho tôi một cách tự nhiên (tuyệt đối không chẩn đoán bệnh, không nhắc đến việc bạn có kiến thức ẩn)."
+                user_content = f"Dựa vào kiến thức y khoa sau:\n{knowledge_context.strip()}\n\nHãy trả lời câu hỏi: {user_message}"
             else:
                 user_content = f"Thông tin nội bộ (ẩn):\n{knowledge_context.strip()}\n\nCâu hỏi của tôi: {user_message}\n\nHãy trả lời tôi một cách tự nhiên (không nhắc đến việc bạn có thông tin nội bộ)."
             messages.append(HumanMessage(content=user_content))

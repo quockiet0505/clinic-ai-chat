@@ -65,32 +65,57 @@ Hãy in ra 1 từ khóa:"""
             return "BOOKING"
             
         # DOCTOR_INFO rules
-        doctor_info_keywords = ["bác sĩ", "bs ", "bs.", "chuyên khoa", "khoa gia đình", "khoa nhi", "khoa sản", "khám khoa", "khoa răng", "khoa mắt", "khoa tai"]
-        if any(kw in msg_lower for kw in doctor_info_keywords) or msg_lower.startswith("khoa "):
+        doctor_info_keywords = [
+            "danh sách bác sĩ", "tìm bác sĩ", "đội ngũ bác sĩ", "bác sĩ của phòng khám", 
+            "bác sĩ nào tốt", "bác sĩ điều trị", "bác sĩ trực", "danh sach bac si", "tim bac si",
+            "thông tin bác sĩ", "bác sĩ chuyên khoa"
+        ]
+        if any(kw in msg_lower for kw in doctor_info_keywords) or (msg_lower.startswith("bác sĩ") and len(msg_lower.split()) < 4):
             return "DOCTOR_INFO"
             
-        # CLINIC_SYMPTOM rules
-        if any(kw in msg_lower for kw in ["khoa nào", "khoa gì", "ở khoa", "bác sĩ nào"]):
+        # CLINIC_SYMPTOM / danh sách chuyên khoa rules
+        specialty_keywords = [
+            "chuyên khoa", "chuyen khoa", "các chuyên khoa", "danh sách chuyên khoa",
+            "phòng khám có khoa", "có khoa nào", "khoa gì", "khoa nào",
+            "ở khoa", "bác sĩ nào", "khám chuyên khoa"
+        ]
+        if any(kw in msg_lower for kw in specialty_keywords):
             return "CLINIC_SYMPTOM"
             
         # PERSONAL_RECORD rules
         record_keywords = ["hồ sơ bệnh án", "kết quả khám", "lịch sử khám", "bệnh án của tôi", "kết quả xét nghiệm"]
         if any(kw in msg_lower for kw in record_keywords):
             return "PERSONAL_RECORD"
-            
+
         # CLINIC_INFO rules
-        clinic_info_keywords = ["giá", "bao nhiêu tiền", "chi phí", "xét nghiệm", "gói khám", "dịch vụ", "giờ làm việc", "lịch làm việc", "mấy giờ", "mở cửa", "đóng cửa", "khám giờ nào", "làm việc giờ nào", "địa chỉ", "ở đâu", "đường nào", "thanh toán", "hotline", "số điện thoại", "phòng khám có"]
+        clinic_info_keywords = [
+            "giờ làm việc", "lịch làm việc", "mấy giờ", "mở cửa", "đóng cửa",
+            "khám giờ nào", "làm việc giờ nào", "bao nhiêu tiền", "chi phí",
+            "gói khám", "dịch vụ", "địa chỉ", "ở đâu", "đường nào",
+            "thanh toán", "hotline", "số điện thoại",
+            "giá khám", "học phí", "phí khám",
+        ]
         if any(kw in msg_lower for kw in clinic_info_keywords):
             return "CLINIC_INFO"
-            
-        # Medical QA rules
-        medical_keywords = ["đau", "nhức", "mỏi", "buốt", "sốt", "ho", "bệnh", "thuốc", "triệu chứng", "uống gì", "chóng mặt", "buồn nôn", "nguyên nhân"]
+
+        # Medical QA rules - chỉ bắt khi có nội dung y tế mang tính triệu chứng rõ ràng
+        medical_keywords = [
+            "đau đầu", "đau bụng", "đau ngực", "đau lưng", "đau họng", "đau tai",
+            "nhức đầu", "nhức mỏi", "buốt", "sốt cao", "sốt li bì",
+            "ho khan", "ho có đờm", "ho ra máu", "ho kéo dài",
+            "bệnh lý", "thuốc uống", "uống gì", "chóng mặt",
+            "buồn nôn", "nguyên nhân gây", "ung thư", "viêm nhiễm",
+            "nghẹt mũi", "ù tai", "ngứa da", "dị ứng da", "phát ban", "nổi mụn",
+            "táo bón", "tiêu chảy", "khó tiêu", "đầy hơi",
+            "triệu chứng", "chảy máu mũi", "chảy máu", "sưng hạch",
+            "em bị", "tôi bị", "mình bị", "con bị", "cháu bị",
+        ]
         if any(kw in msg_lower for kw in medical_keywords):
             return "MEDICAL_QA"
-            
+
         # General rules
         general_keywords = ["xin chào", "hello", "hi", "cảm ơn", "tạm biệt", "bye", "ok", "dạ", "vâng"]
         if any(kw in msg_lower for kw in general_keywords) and len(msg_lower.split()) <= 5:
             return "GENERAL"
-            
+
         return None

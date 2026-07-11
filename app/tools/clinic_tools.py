@@ -1,3 +1,4 @@
+from typing import Optional
 from langchain_core.tools import tool
 
 from app.clients.backend_client import BackendClient
@@ -38,7 +39,7 @@ def get_specialties_tool() -> str:
 
 
 @tool
-def get_doctors_tool(expertise_name: str = "", doctor_name: str = "") -> str:
+def get_doctors_tool(expertise_name: Optional[str] = None, doctor_name: Optional[str] = None) -> str:
     """
     Dùng khi:
     - Người dùng hỏi danh sách bác sĩ chung.
@@ -47,12 +48,16 @@ def get_doctors_tool(expertise_name: str = "", doctor_name: str = "") -> str:
     
     TUYỆT ĐỐI KHÔNG dùng tool này để kiểm tra lịch làm việc, lịch trống hay ngày làm việc.
     """
+    # Chuẩn hoá: biến None / chuỗi rỗng về chuỗi trống để tránh lỗi .strip()
+    expertise_name = (expertise_name or "").strip()
+    doctor_name = (doctor_name or "").strip()
+
     client = BackendClient()
     try:
         expertise_id = None
-        if expertise_name.strip():
+        if expertise_name:
             raw_specialties = client.get_specialties()
-            keyword = expertise_name.strip().lower()
+            keyword = expertise_name.lower()
             if raw_specialties:
                 for item in raw_specialties:
                     name = (item.get("expertiseName") or "").lower()
@@ -62,7 +67,7 @@ def get_doctors_tool(expertise_name: str = "", doctor_name: str = "") -> str:
 
         raw_doctors = client.get_doctors(expertise_id=expertise_id)
         
-        if doctor_name.strip():
+        if doctor_name:
             keyword_doc = doctor_name.strip().lower()
             if raw_doctors:
                 raw_doctors = [d for d in raw_doctors if keyword_doc in (d.get("fullName") or "").lower()]

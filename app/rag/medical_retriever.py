@@ -5,7 +5,10 @@ from datasets import load_dataset
 
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from langchain_ollama import OllamaEmbeddings
+try:
+    from langchain_huggingface import HuggingFaceEmbeddings
+except ImportError:
+    from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.config import settings
@@ -26,9 +29,9 @@ class MedicalRetriever:
 
     def __init__(self, persist_dir: Path | None = None):
         self.persist_dir = persist_dir or MEDICAL_DB_DIR
-        self.embeddings = OllamaEmbeddings(
-            model="nomic-embed-text",
-            base_url=settings.OLLAMA_BASE_URL,
+        self.embeddings = HuggingFaceEmbeddings(
+            model_name="nomic-ai/nomic-embed-text-v1.5",
+            model_kwargs={"trust_remote_code": True, "device": "cpu"}
         )
         self.vector_store = self._initialize_vector_store()
         

@@ -408,18 +408,18 @@ Kết quả:"""
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
-                knowledge = get_doctors_tool.invoke(params)
-            elif "bác sĩ" in message.lower():
-                knowledge = get_doctors_tool.invoke({})
+                knowledge = "[DIRECT_REPLY] " + get_doctors_tool.invoke(params)
+            elif any(kw in message.lower() for kw in ["danh sách bác sĩ", "tìm bác sĩ", "đội ngũ bác sĩ", "bác sĩ nào", "danh sach bac si", "tim bac si"]):
+                knowledge = "[DIRECT_REPLY] " + get_doctors_tool.invoke({})
             else:
-                knowledge = get_specialties_tool.invoke({})
+                knowledge = "[DIRECT_REPLY] " + get_specialties_tool.invoke({})
         elif intent == "CLINIC_INFO":
             from app.tools.clinic_tools import get_services_tool, get_clinic_info_tool
             msg_lower = message.lower()
             if any(kw in msg_lower for kw in ["giá", "dịch vụ", "xét nghiệm", "chi phí", "bao nhiêu"]):
-                knowledge = get_services_tool.invoke({"featured_only": False})
+                knowledge = "[DIRECT_REPLY] " + get_services_tool.invoke({"featured_only": False})
             else:
-                knowledge = get_clinic_info_tool.invoke({})
+                knowledge = "[DIRECT_REPLY] " + get_clinic_info_tool.invoke({})
         else:
             knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
 
@@ -579,18 +579,18 @@ Kết quả:"""
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
-                knowledge = get_doctors_tool.invoke(params)
-            elif "bác sĩ" in message.lower():
-                knowledge = get_doctors_tool.invoke({})
+                knowledge = "[DIRECT_REPLY] " + get_doctors_tool.invoke(params)
+            elif any(kw in message.lower() for kw in ["danh sách bác sĩ", "tìm bác sĩ", "đội ngũ bác sĩ", "bác sĩ nào", "danh sach bac si", "tim bac si"]):
+                knowledge = "[DIRECT_REPLY] " + get_doctors_tool.invoke({})
             else:
-                knowledge = get_specialties_tool.invoke({})
+                knowledge = "[DIRECT_REPLY] " + get_specialties_tool.invoke({})
         elif intent == "CLINIC_INFO":
             from app.tools.clinic_tools import get_services_tool, get_clinic_info_tool
             msg_lower = message.lower()
             if any(kw in msg_lower for kw in ["giá", "dịch vụ", "xét nghiệm", "chi phí", "bao nhiêu"]):
-                knowledge = get_services_tool.invoke({"featured_only": False})
+                knowledge = "[DIRECT_REPLY] " + get_services_tool.invoke({"featured_only": False})
             else:
-                knowledge = get_clinic_info_tool.invoke({})
+                knowledge = "[DIRECT_REPLY] " + get_clinic_info_tool.invoke({})
         else:
             knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
         
