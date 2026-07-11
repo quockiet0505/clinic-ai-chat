@@ -42,7 +42,7 @@ Các Intent hợp lệ:
 7. PERSONAL_RECORD: Hỏi về hồ sơ bệnh án, kết quả khám của bản thân.
 8. GENERAL: Chào hỏi thông thường, CÂU HỎI NGOÀI LỀ, KHÔNG LIÊN QUAN ĐẾN Y TẾ HOẶC PHÒNG KHÁM, KHÔNG RÕ NGHĨA.
 
-QUAN TRỌNG: Nếu lịch sử hội thoại cho thấy người dùng ĐANG TRONG QUÁ TRÌNH ĐẶT LỊCH (ví dụ AI đang hỏi ngày giờ, hỏi chuyên khoa, hỏi tên bác sĩ để đặt) và người dùng trả lời (ví dụ cung cấp tên bác sĩ "Lê Tuấn", cung cấp ngày), thì Intent BẮT BUỘC phải tiếp tục là BOOKING, KHÔNG được chuyển sang DOCTOR_INFO.
+QUAN TRỌNG: Nếu lịch sử hội thoại cho thấy người dùng ĐANG TRONG QUÁ TRÌNH ĐẶT LỊCH (ví dụ AI đang hỏi ngày giờ, chuyên khoa, tên bác sĩ) NHƯNG câu nói hiện tại của người dùng là một CÂU HỎI (ví dụ: "Có bác sĩ Lê Tuấn không?", "Giá khám bao nhiêu?"), thì BẮT BUỘC phải chuyển Intent sang DOCTOR_INFO hoặc CLINIC_INFO để AI trả lời câu hỏi đó. CHỈ GIỮ Intent là BOOKING nếu người dùng trực tiếp cung cấp thông tin để điền vào chỗ trống (ví dụ: "Tôi chọn Lê Tuấn", "Ngày mai", "Khám chuyên khoa nhi").
 
 Yêu cầu JSON có cấu trúc sau:
 {{

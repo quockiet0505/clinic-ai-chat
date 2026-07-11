@@ -110,8 +110,15 @@ class LLMService:
             messages.append(HumanMessage(content=user_message))
 
         try:
-            for chunk in self.ollama_llm.stream(messages):
-                yield chunk.content
+            # Backend Modal hiện tại trả về cục JSON thay vì SSE, 
+            # nên dùng invoke() rồi fake stream từng đoạn để tránh lỗi parse stream.
+            response = self.ollama_llm.invoke(messages)
+            content = response.content
+            
+            # Fake stream bằng cách chia nhỏ theo từ (word)
+            words = content.split(" ")
+            for i, word in enumerate(words):
+                yield word + (" " if i < len(words) - 1 else "")
         except Exception as exc:
             logger.error(f"Stream error: {exc}")
             raise LLMServiceError(f"Stream thất bại: {exc}") from exc

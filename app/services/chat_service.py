@@ -349,8 +349,8 @@ Kết quả:"""
             msg_lower = message.lower()
 
         # Skip analyzer nếu đang booking và fast_intent đã rõ là BOOKING (kể cả câu ngắn)
-        # → tiết kiệm 20-30 giây gọi LLM không cần thiết
-        booking_shortcut = is_booking and fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"]
+        # BỎ QUA SHORTCUT ĐỂ LLM CÓ THỂ EXTRACT THAM SỐ
+        booking_shortcut = False
 
         if (is_booking or needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent) and not skip_analyze and not booking_shortcut:
             analysis = self.analyzer_service.analyze(message, history)
@@ -408,18 +408,18 @@ Kết quả:"""
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
-                knowledge = "[DIRECT_REPLY]\n" + get_doctors_tool.invoke(params)
+                knowledge = get_doctors_tool.invoke(params)
             elif "bác sĩ" in message.lower():
-                knowledge = "[DIRECT_REPLY]\n" + get_doctors_tool.invoke({})
+                knowledge = get_doctors_tool.invoke({})
             else:
-                knowledge = "[DIRECT_REPLY]\n" + get_specialties_tool.invoke({})
+                knowledge = get_specialties_tool.invoke({})
         elif intent == "CLINIC_INFO":
             from app.tools.clinic_tools import get_services_tool, get_clinic_info_tool
             msg_lower = message.lower()
             if any(kw in msg_lower for kw in ["giá", "dịch vụ", "xét nghiệm", "chi phí", "bao nhiêu"]):
-                knowledge = "[DIRECT_REPLY]\n" + get_services_tool.invoke({"featured_only": False})
+                knowledge = get_services_tool.invoke({"featured_only": False})
             else:
-                knowledge = "[DIRECT_REPLY]\n" + get_clinic_info_tool.invoke({})
+                knowledge = get_clinic_info_tool.invoke({})
         else:
             knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
 
@@ -517,8 +517,8 @@ Kết quả:"""
             msg_lower = message.lower()
 
         # Skip analyzer nếu đang booking và fast_intent đã rõ là BOOKING (kể cả câu ngắn)
-        # → tiết kiệm 20-30 giây gọi LLM không cần thiết
-        booking_shortcut = is_booking and fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"]
+        # BỎ QUA SHORTCUT ĐỂ LLM CÓ THỂ EXTRACT THAM SỐ
+        booking_shortcut = False
 
         if (is_booking or needs_rewrite or fast_intent in ["BOOKING", "DOCTOR_INFO", "CLINIC_SYMPTOM"] or not fast_intent) and not skip_analyze and not booking_shortcut:
             analysis = self.analyzer_service.analyze(message, history)
@@ -579,18 +579,18 @@ Kết quả:"""
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
-                knowledge = "[DIRECT_REPLY]\n" + get_doctors_tool.invoke(params)
+                knowledge = get_doctors_tool.invoke(params)
             elif "bác sĩ" in message.lower():
-                knowledge = "[DIRECT_REPLY]\n" + get_doctors_tool.invoke({})
+                knowledge = get_doctors_tool.invoke({})
             else:
-                knowledge = "[DIRECT_REPLY]\n" + get_specialties_tool.invoke({})
+                knowledge = get_specialties_tool.invoke({})
         elif intent == "CLINIC_INFO":
             from app.tools.clinic_tools import get_services_tool, get_clinic_info_tool
             msg_lower = message.lower()
             if any(kw in msg_lower for kw in ["giá", "dịch vụ", "xét nghiệm", "chi phí", "bao nhiêu"]):
-                knowledge = "[DIRECT_REPLY]\n" + get_services_tool.invoke({"featured_only": False})
+                knowledge = get_services_tool.invoke({"featured_only": False})
             else:
-                knowledge = "[DIRECT_REPLY]\n" + get_clinic_info_tool.invoke({})
+                knowledge = get_clinic_info_tool.invoke({})
         else:
             knowledge = self._build_knowledge_context(search_query, intent, history, access_token)
         

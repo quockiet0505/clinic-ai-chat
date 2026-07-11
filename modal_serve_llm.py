@@ -1,5 +1,5 @@
 """
-Modal script to serve the fine-tuned Clinic AI model (Qwen2.5-7B-Instruct) using vLLM.
+Modal script to serve the fine-tuned Clinic AI model (Qwen2.5-7B-Instruct) using transformers (stable fallback).
 Deploy to Modal:
   modal deploy modal_serve_llm.py
 """
@@ -17,14 +17,17 @@ volume = modal.Volume.from_name("clinic-model-vol", create_if_missing=True)
 # 2. Define App
 app = modal.App(name="clinic-ai-serving")
 
-# 3. Define Docker Image with vLLM installed
+# 3. Define Docker Image with transformers installed (same as modal_app.py)
 image = (
     modal.Image.debian_slim(python_version="3.10")
     .pip_install(
-        "vllm==0.5.4",  # Phiên bản vLLM ổn định hoạt động tốt trên A10G
         "fastapi",
         "pydantic",
         "huggingface_hub",
+        "transformers>=4.45.0",
+        "torch>=2.0.0",
+        "accelerate>=0.30.0",
+        "bitsandbytes",
         "pyairports"
     )
 )
@@ -43,35 +46,47 @@ else:
 @app.cls(
     image=image,
     volumes={"/storage": volume},
-    gpu="a10g",          # GPU A10G (24GB VRAM) hoàn hảo để chạy model 7B/8B
+    gpu="a10g",          # GPU A10G (24GB VRAM)
     timeout=600,
-    min_containers=0,     # Cho phép scale về 0 khi không có yêu cầu để tiết kiệm tiền (chỉ tốn tiền khi có người chat)
+    startup_timeout=600,  # Tối đa 10 phút để nạp model
+    min_containers=0,     # Scale về 0 khi không có yêu cầu
     secrets=secrets_list,
 )
 class ClinicModel:
     @modal.enter()
     def load_model(self):
         import os
-        from vllm import LLM
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
         
         model_path = "/storage/clinic_qwen_7b_merged"
         
-        # Nếu chưa chạy train hoặc chưa có model merge trong Volume, tự động fallback về base model gốc
         if not os.path.exists(model_path) or not os.path.exists(f"{model_path}/config.json"):
             print(f"⚠️ Không tìm thấy model đã gộp tại {model_path}. Tự động fallback về base model gốc: Qwen/Qwen2.5-7B-Instruct")
             model_path = "Qwen/Qwen2.5-7B-Instruct"
         else:
             print(f"🤖 Đang nạp model y tế đã được gộp từ Volume: {model_path}")
             
-        # Khởi tạo engine vLLM
-        self.llm = LLM(
-            model=model_path,
-            max_model_len=2048,           # Giới hạn context length để tối ưu hóa bộ nhớ
-            gpu_memory_utilization=0.90,  # Dành 90% GPU VRAM cho model
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            
+        # Quantize to 4-bit to fit comfortably on A10G (same as modal_app.py)
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+        )
+        
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            quantization_config=quantization_config,
+            device_map="auto",
             trust_remote_code=True
         )
-        self.tokenizer = self.llm.get_tokenizer()
-        print("✅ vLLM Engine đã khởi động thành công!")
+        self.model.eval()
+        print("✅ Transformers Engine đã khởi động thành công!")
 
     @modal.asgi_app()
     def app(self):
@@ -79,6 +94,7 @@ class ClinicModel:
         from pydantic import BaseModel
         from typing import List, Optional
         from fastapi.middleware.cors import CORSMiddleware
+        import torch
 
         web_app = FastAPI(title="Clinic AI Service")
 
@@ -102,10 +118,7 @@ class ClinicModel:
 
         @web_app.post("/v1/chat/completions")
         async def chat(req: ChatRequest):
-            from vllm import SamplingParams
-            
             try:
-                # 1. Định dạng hội thoại qua tokenizer chat template
                 formatted_messages = [{"role": msg.role, "content": msg.content} for msg in req.messages]
                 prompt = self.tokenizer.apply_chat_template(
                     formatted_messages,
@@ -113,18 +126,23 @@ class ClinicModel:
                     add_generation_prompt=True
                 )
                 
-                # 2. Cấu hình tham số sinh (greedy decoding cho sự chuẩn xác y khoa)
-                sampling_params = SamplingParams(
-                    temperature=req.temperature,
-                    max_tokens=req.max_tokens,
-                    stop=["<|im_end|>", "<|im_start|>", "</s>"]
-                )
+                inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
                 
-                # 3. Chạy inference qua vLLM
-                outputs = self.llm.generate([prompt], sampling_params)
-                response_text = outputs[0].outputs[0].text
+                with torch.no_grad():
+                    outputs = self.model.generate(
+                        **inputs,
+                        max_new_tokens=req.max_tokens,
+                        temperature=req.temperature,
+                        do_sample=req.temperature > 0 if req.temperature else False,
+                        tokenizer=self.tokenizer,
+                        stop_strings=["<|im_end|>", "<|im_start|>", "</s>"],
+                        eos_token_id=self.tokenizer.eos_token_id,
+                        pad_token_id=self.tokenizer.eos_token_id,
+                    )
                 
-                # 4. Trả về kết quả theo chuẩn format OpenAI
+                input_len = inputs["input_ids"].shape[1]
+                response_text = self.tokenizer.decode(outputs[0][input_len:], skip_special_tokens=True).strip()
+                
                 return {
                     "choices": [
                         {
