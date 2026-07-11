@@ -2,7 +2,7 @@ import logging
 from typing import Iterator
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from langchain_ollama import ChatOllama
+from app.core.llm import get_llm
 
 from app.config import settings
 from app.core.exceptions import LLMServiceError
@@ -20,13 +20,8 @@ class LLMService:
 
     def __init__(self):
         try:
-            self.ollama_llm = ChatOllama(
-                model=settings.MODEL_NAME,
-                base_url=settings.OLLAMA_BASE_URL,
-                temperature=settings.LLM_TEMPERATURE,
-            num_ctx=4096,
-            )
-            logger.info(f"Khởi tạo Ollama Local (model={settings.MODEL_NAME})")
+            self.ollama_llm = get_llm()
+            logger.info("Khởi tạo LLM Service thành công.")
         except Exception as exc:
             logger.error(f"Lỗi khởi tạo LLM: {exc}")
             raise LLMServiceError("Không thể kết nối đến AI Service") from exc

@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_ollama import ChatOllama
+from app.core.llm import get_llm
 
 from app.config import settings
 
@@ -17,9 +17,7 @@ class ParameterExtractorService:
     """
     
     def __init__(self):
-        self.llm = ChatOllama(
-            model=settings.MODEL_NAME,
-            base_url=settings.OLLAMA_BASE_URL,
+        self.llm = get_llm(
             temperature=0.0,
             format="json", # Ép cứng output ra JSON
         )

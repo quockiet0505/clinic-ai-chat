@@ -247,15 +247,12 @@ Kết quả:"""
         messages = [SystemMessage(content=prompt)]
         
         try:
-            from langchain_ollama import ChatOllama
-            from app.config import settings
+            from app.core.llm import get_llm
             import json
             import re
             
             # Khởi tạo LLM ép JSON mode để chống luyên thuyên
-            rewrite_llm = ChatOllama(
-                model=settings.MODEL_NAME,
-                base_url=settings.OLLAMA_BASE_URL,
+            rewrite_llm = get_llm(
                 temperature=0.0,
                 format="json"
             )

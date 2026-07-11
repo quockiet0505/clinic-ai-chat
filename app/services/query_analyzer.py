@@ -3,7 +3,7 @@ import logging
 import re
 from datetime import datetime
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_ollama import ChatOllama
+from app.core.llm import get_llm
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -14,11 +14,8 @@ class QueryAnalyzerService:
     chỉ trong 1 lần gọi LLM duy nhất (One-Shot JSON), giúp giảm thiểu độ trễ (TTFT).
     """
     def __init__(self):
-        self.llm = ChatOllama(
-            model=settings.MODEL_NAME,
-            base_url=settings.OLLAMA_BASE_URL,
+        self.llm = get_llm(
             temperature=0.0,
-            num_ctx=4096,
             format="json",
         )
 

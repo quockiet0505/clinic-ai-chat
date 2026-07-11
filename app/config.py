@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     HOST: str = "0.0.0.0"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
+    MODAL_API_URL: str = "" # Endpoint của vLLM trên Modal
     MODEL_NAME: str = "qwen2.5:3b"
     CLINIC_BACKEND_URL: str = "http://localhost:8080"
     LLM_TEMPERATURE: float = 0.3

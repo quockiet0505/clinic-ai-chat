@@ -12,7 +12,12 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-VECTOR_DB_DIR = Path(__file__).resolve().parents[2] / "vector_db"
+import os
+
+if os.environ.get("IS_MODAL") == "true":
+    VECTOR_DB_DIR = Path("/storage/vector_db")
+else:
+    VECTOR_DB_DIR = Path(__file__).resolve().parents[2] / "vector_db"
 MEDICAL_DB_DIR = VECTOR_DB_DIR / "medical_chroma"
 MEDICAL_HASH_FILE = VECTOR_DB_DIR / ".medical_hash"
 

@@ -1,6 +1,6 @@
 import logging
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_ollama import ChatOllama
+from app.core.llm import get_llm
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -12,12 +12,7 @@ class RouterService:
     """
     
     def __init__(self):
-        self.llm = ChatOllama(
-            model=settings.MODEL_NAME,
-            base_url=settings.OLLAMA_BASE_URL,
-            temperature=0.0, 
-            num_predict=15,
-        )
+        self.llm = get_llm(temperature=0.0, max_tokens=15)
         
         self.system_prompt = """Bạn là Router của phòng khám. 
 Phân loại tin nhắn thành MỘT TRONG 7 Intent sau (chỉ in ra đúng 1 từ khóa):
