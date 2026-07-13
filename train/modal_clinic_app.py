@@ -121,7 +121,8 @@ def fastapi_app():
     # -----------------------------------------------------------------------
     # Step 1: Load Qwen LLM into GPU VRAM
     # -----------------------------------------------------------------------
-    model_path = "/storage/clinic_qwen_7b_merged"
+    # Path to the fine-tuned V2 Qwen model stored on Modal Volume
+    model_path = "/storage/clinic_qwen_7b_merged_v2"
     if not os.path.exists(model_path) or not os.path.exists(f"{model_path}/config.json"):
         print("[LLM] Merged model not found. Falling back to Qwen/Qwen2.5-7B-Instruct base model.")
         model_path = "Qwen/Qwen2.5-7B-Instruct"

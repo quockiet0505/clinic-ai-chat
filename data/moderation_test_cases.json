@@ -1,0 +1,802 @@
+[
+  {
+    "id": 1,
+    "rating": 5,
+    "comment": "Bác sĩ tư vấn rất nhiệt tình, phòng khám sạch sẽ, khang trang.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 2,
+    "rating": 5,
+    "comment": "Dịch vụ tuyệt vời, nhân viên y tế chu đáo, tôi rất hài lòng.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 3,
+    "rating": 4,
+    "comment": "Đặt lịch hẹn trước nên đến là được khám ngay, không phải chờ lâu.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 4,
+    "rating": 5,
+    "comment": "Bác sĩ chuyên môn cao, giải thích bệnh tình cặn kẽ dễ hiểu.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 5,
+    "rating": 4,
+    "comment": "Phòng khám hiện đại, có chỗ đậu xe rộng rãi.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 6,
+    "rating": 5,
+    "comment": "Chi phí hợp lý, công khai rõ ràng từng mục khám.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 7,
+    "rating": 5,
+    "comment": "Tôi đã đưa cả nhà đến đây khám và ai cũng khen dịch vụ tốt.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 8,
+    "rating": 4,
+    "comment": "Quy trình nhanh gọn, bác sĩ nhẹ nhàng với trẻ nhỏ.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 9,
+    "rating": 5,
+    "comment": "Thuốc kê đơn uống có hiệu quả nhanh, cảm ơn bác sĩ nhiều.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 10,
+    "rating": 4,
+    "comment": "Nhân viên lễ tân lịch sự, hướng dẫn làm thủ tục rất nhanh chóng.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 11,
+    "rating": 5,
+    "comment": "Không gian phòng khám vô trùng sạch sẽ, tạo cảm giác an tâm.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 12,
+    "rating": 5,
+    "comment": "Thiết bị y tế mới và hiện đại, quy trình khám khoa học.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 13,
+    "rating": 5,
+    "comment": "Bác sĩ sản khoa tư vấn cực kỳ tâm lý và nhẹ nhàng.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 14,
+    "rating": 4,
+    "comment": "Nhận kết quả xét nghiệm nhanh hơn tôi nghĩ.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 15,
+    "rating": 5,
+    "comment": "Rất hài lòng với thái độ phục vụ chuyên nghiệp tại đây.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 16,
+    "rating": 4,
+    "comment": "Địa chỉ dễ tìm, ngay mặt đường lớn.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 17,
+    "rating": 5,
+    "comment": "Sẽ tiếp tục ủng hộ phòng khám khi có nhu cầu kiểm tra sức khỏe.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 18,
+    "rating": 5,
+    "comment": "Trải nghiệm khám tổng quát rất nhanh gọn và chu đáo.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 19,
+    "rating": 4,
+    "comment": "Bác sĩ răng hàm mặt làm việc rất kỹ lưỡng và không đau.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 20,
+    "rating": 5,
+    "comment": "Nhà thuốc phòng khám có đầy đủ các loại thuốc kê đơn.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 21,
+    "rating": 5,
+    "comment": "Mọi thủ tục đều được số hóa, rất tiện lợi.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 22,
+    "rating": 4,
+    "comment": "Bác sĩ nhi khoa dỗ bé rất khéo, bé không hề khóc khi tiêm.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 23,
+    "rating": 5,
+    "comment": "Phòng chờ sạch đẹp, có nước uống phục vụ miễn phí.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 24,
+    "rating": 4,
+    "comment": "Bác sĩ da liễu kê đơn phù hợp, da tôi đã cải thiện rõ rệt.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 25,
+    "rating": 5,
+    "comment": "Đặt hẹn qua web tiện thật sự, tiết kiệm được nhiều thời gian.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Chuẩn mực - Tích cực"
+  },
+  {
+    "id": 26,
+    "rating": 3,
+    "comment": "Chờ đợi quá lâu, mặc dù đã đặt lịch trước 2 tiếng mà vẫn phải xếp hàng dài.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Góp ý chân thành - Thấp sao nhưng lịch sự"
+  },
+  {
+    "id": 27,
+    "rating": 3,
+    "comment": "Giá dịch vụ xét nghiệm ở đây quá đắt đỏ so với mặt bằng chung các bệnh viện công.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Góp ý chân thành - Thấp sao nhưng lịch sự"
+  },
+  {
+    "id": 28,
+    "rating": 3,
+    "comment": "Bác sĩ tư vấn quá nhanh, tôi chưa kịp hỏi hết các thắc mắc thì đã cho ra ngoài.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Góp ý chân thành - Thấp sao nhưng lịch sự"
+  },
+  {
+    "id": 29,
+    "rating": 3,
+    "comment": "Phòng chờ điều hòa bị hỏng, rất nóng nực và ngột ngạt khi đông người.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Góp ý chân thành - Thấp sao nhưng lịch sự"
+  },
+  {
+    "id": 30,
+    "rating": 3,
+    "comment": "Thái độ của nhân viên bảo vệ giữ xe không được thân thiện, hay nhăn nhó với khách.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Góp ý chân thành - Thấp sao nhưng lịch sự"
+  },
+  {
+    "id": 31,
+    "rating": 5,
+    "comment": "Lúc đầu tôi sợ phòng khám lừa đảo, nhưng đến khám mới thấy cực kỳ uy tín.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Bẫy Từ Khóa - Chứa từ 'lừa đảo' nhưng ngữ cảnh tích cực"
+  },
+  {
+    "id": 32,
+    "rating": 5,
+    "comment": "Đọc mấy đánh giá chê phòng khám tệ mà tôi hoang mang, đi rồi mới thấy rất ok.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Bẫy Từ Khóa - Chứa từ 'tệ' nhưng ngữ cảnh tích cực"
+  },
+  {
+    "id": 33,
+    "rating": 5,
+    "comment": "Không hề có chuyện bác sĩ thờ ơ hay ngu dốt như tin đồn mạng, tư vấn rất tâm huyết.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Bẫy Từ Khóa - Chứa từ nhạy cảm trong câu phủ định"
+  },
+  {
+    "id": 34,
+    "rating": 5,
+    "comment": "Tuyệt vời, tôi không chê vào đâu được, chấm điểm 10/10.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Bẫy Từ Khóa - Chứa từ 'chê' nhưng ngữ cảnh khen"
+  },
+  {
+    "id": 35,
+    "rating": 4,
+    "comment": "Phòng khám không hề spam tin nhắn quảng cáo phiền phức như mấy bên khác.",
+    "expected_approved": true,
+    "expected_violation_type": "CLEAN",
+    "scenario": "Bẫy Từ Khóa - Chứa từ 'spam' trong câu khen"
+  },
+  {
+    "id": 36,
+    "rating": 1,
+    "comment": "Bác sĩ thái độ quá kém, đồ ngu không biết khám bệnh gì cả.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 37,
+    "rating": 1,
+    "comment": "Lũ lừa đảo làm ăn ăn hại vô dụng, tốn tiền mà bệnh nặng thêm.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 38,
+    "rating": 2,
+    "comment": "Nhân viên lễ tân như con điên, thái độ nói chuyện hách dịch.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 39,
+    "rating": 1,
+    "comment": "Phòng khám làm ăn như c***, khuyên mọi người né xa ra kẻo chết oan.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 40,
+    "rating": 1,
+    "comment": "Bác sĩ khám bệnh ngu ngốc như con bò, hỏi gì cũng không biết trả lời.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 41,
+    "rating": 1,
+    "comment": "Đồ ăn hại, phá hoại sức khỏe người khác, tôi sẽ khởi kiện phòng khám.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 42,
+    "rating": 2,
+    "comment": "Bác sĩ Nguyễn Văn A chuyên môn cực kỳ vô dụng, tống tiền bệnh nhân.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 43,
+    "rating": 1,
+    "comment": "Lũ chó này chỉ biết tiền thôi, khám thì dốt nát.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 44,
+    "rating": 1,
+    "comment": "Mẹ nó, khám mắt mà làm đau mắt người ta thêm, làm ăn vô trách nhiệm.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 45,
+    "rating": 1,
+    "comment": "Phòng khám này là một lũ scam lừa đảo tiền của dân nghèo.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 46,
+    "rating": 1,
+    "comment": "Tẩy chay ngay phòng khám này đi mọi người, lũ hút máu người.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 47,
+    "rating": 2,
+    "comment": "Bác sĩ khám như đấm vào tai, ăn nói tục tĩu mất dạy.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 48,
+    "rating": 1,
+    "comment": "Nhân viên y tế ngu xuẩn, lấy máu mà chọc nát tay khách hàng.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 49,
+    "rating": 1,
+    "comment": "Cạch mặt cái phòng khám khốn nạn này ra, tốn đống tiền rước bực vào người.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 50,
+    "rating": 1,
+    "comment": "Lừa đảo trắng trợn, bác sĩ vẽ bệnh để lấy tiền, quá thất đức.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Căm phẫn - Swearing/Insults"
+  },
+  {
+    "id": 51,
+    "rating": 5,
+    "comment": "Bác sĩ giỏi lắm, liên hệ sđt 0987654321 để mua thực phẩm chức năng giảm cân nha.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Chứa số điện thoại"
+  },
+  {
+    "id": 52,
+    "rating": 5,
+    "comment": "Dịch vụ tạm ổn. Ai cần vay tiền nhanh không thế chấp truy cập ngay www.vaytiensieutoc.com.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Chứa URL quảng cáo"
+  },
+  {
+    "id": 53,
+    "rating": 3,
+    "comment": "Tham gia nhóm telegram t.me/kiemtienonline để nhận ưu đãi phòng khám và kiếm 500k mỗi ngày.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Chứa Link Telegram"
+  },
+  {
+    "id": 54,
+    "rating": 5,
+    "comment": "Phòng khám sạch sẽ. Shop mình chuyên bán thuốc xương khớp gia truyền, zalo 0905123456.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Quảng cáo Zalo"
+  },
+  {
+    "id": 55,
+    "rating": 4,
+    "comment": "Bác sĩ tư vấn kỹ. Đang có chương trình khuyến mãi giảm giá 50% túi xách tại https://tixachdep.vn.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Chứa URL"
+  },
+  {
+    "id": 56,
+    "rating": 5,
+    "comment": "Dịch vụ ở đây cực tốt, nhận mã giảm giá mua sắm free tại shopee qua link này nhé.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Link Shopee khuyến mãi"
+  },
+  {
+    "id": 57,
+    "rating": 2,
+    "comment": "Chờ đợi lâu quá. Liên hệ hotline 1900100x để phản ánh dịch vụ và nhận quà miễn phí.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Chứa hotline quảng cáo"
+  },
+  {
+    "id": 58,
+    "rating": 5,
+    "comment": "Bác sĩ tận tình. Xem ngay livestream nhận quà free tại facebook.com/shopquatang.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Link Facebook ngoài"
+  },
+  {
+    "id": 59,
+    "rating": 4,
+    "comment": "Phục vụ tốt. Cửa hàng đồ gia dụng thông minh đang ưu đãi giảm giá lớn tại quận 10.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Quảng cáo cửa hàng"
+  },
+  {
+    "id": 60,
+    "rating": 5,
+    "comment": "Rất hài lòng. Ai muốn chữa dứt điểm trĩ nội trĩ ngoại liên hệ thầy lang Bảy sđt 0912345678.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Số điện thoại thầy lang ngoài"
+  },
+  {
+    "id": 61,
+    "rating": 5,
+    "comment": "Nhận ngay tài liệu ôn thi đại học miễn phí tại drive.google.com/share/abc.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Chia sẻ link Google Drive"
+  },
+  {
+    "id": 62,
+    "rating": 1,
+    "comment": "Dịch vụ tệ. Khuyên mọi người qua phòng khám răng kế bên tại địa chỉ 123 đường X tốt hơn nhiều.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Lôi kéo khách sang đối thủ"
+  },
+  {
+    "id": 63,
+    "rating": 5,
+    "comment": "Tuyệt vời! Tải app nhận ngay 100k tiền mặt tại link này.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Spam App kiếm tiền"
+  },
+  {
+    "id": 64,
+    "rating": 3,
+    "comment": "Giá hơi cao. Tham khảo bảng giá thuốc rẻ hơn tại website nhathuocgiasi.com.vn.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Quảng cáo website thuốc ngoài"
+  },
+  {
+    "id": 65,
+    "rating": 5,
+    "comment": "Bác sĩ chu đáo. Tuyển cộng tác viên làm việc tại nhà thu nhập cao liên hệ telegram @jobhot.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bẫy Spam - Spam lừa đảo Telegram"
+  },
+  {
+    "id": 66,
+    "rating": 5,
+    "comment": "Bác sĩ khám tốt nhưng thái độ của mấy đứa lễ tân như c***.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Bẫy Phá Rối - 5 sao kèm Chửi thề"
+  },
+  {
+    "id": 67,
+    "rating": 5,
+    "comment": "Phòng khám quá đẹp nhưng đ** chịu được thời gian chờ lâu.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Bẫy Phá Rối - 5 sao kèm Từ tục"
+  },
+  {
+    "id": 68,
+    "rating": 5,
+    "comment": "Bác sĩ chuyên môn tốt nhưng vẽ bệnh lừa đảo lấy tiền của tôi.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Bẫy Phá Rối - 5 sao buộc tội lừa đảo"
+  },
+  {
+    "id": 69,
+    "rating": 4,
+    "comment": "Khám thì được nhưng lũ nhân viên nói chuyện ngu như chó.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Bẫy Phá Rối - 4 sao kèm Xúc phạm"
+  },
+  {
+    "id": 70,
+    "rating": 5,
+    "comment": "Thuốc uống tốt nhưng giá đắt vãi đ**, hút máu người quá.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Bẫy Phá Rối - 5 sao chửi tục giá cả"
+  },
+  {
+    "id": 71,
+    "rating": 5,
+    "comment": "Hôm nay thời tiết đẹp quá, chúc mọi người một ngày làm việc vui vẻ nhé.",
+    "expected_approved": false,
+    "expected_violation_type": "IRRELEVANT",
+    "scenario": "Ngoại lệ - Không liên quan y tế"
+  },
+  {
+    "id": 72,
+    "rating": 3,
+    "comment": "Bóng đá Việt Nam hôm nay đá mấy giờ thế mọi người, ai biết lịch đấu không?",
+    "expected_approved": false,
+    "expected_violation_type": "IRRELEVANT",
+    "scenario": "Ngoại lệ - Không liên quan y tế"
+  },
+  {
+    "id": 73,
+    "rating": 5,
+    "comment": "Giá vàng SJC hôm nay lại tiếp tục lập đỉnh mới rồi, kinh tế biến động ghê thật.",
+    "expected_approved": false,
+    "expected_violation_type": "IRRELEVANT",
+    "scenario": "Ngoại lệ - Không liên quan y tế"
+  },
+  {
+    "id": 74,
+    "rating": 1,
+    "comment": "Tìm mua thanh lý tủ lạnh cũ tại khu vực Cầu Giấy, ai có ib mình.",
+    "expected_approved": false,
+    "expected_violation_type": "IRRELEVANT",
+    "scenario": "Ngoại lệ - Không liên quan y tế"
+  },
+  {
+    "id": 75,
+    "rating": 4,
+    "comment": "Phim mới ngoài rạp hay lắm mọi người ơi, tối nay đi coi liền đi.",
+    "expected_approved": false,
+    "expected_violation_type": "IRRELEVANT",
+    "scenario": "Ngoại lệ - Không liên quan y tế"
+  },
+  {
+    "id": 76,
+    "rating": 5,
+    "comment": "asdjhgasjdhgqweytqwuehgasd",
+    "expected_approved": false,
+    "expected_violation_type": "INCOHERENT",
+    "scenario": "Ngoại lệ - Gõ chữ vô nghĩa"
+  },
+  {
+    "id": 77,
+    "rating": 5,
+    "comment": "Chấm điểm phòng khám: ⭐️⭐️⭐️⭐️⭐️ 👍👍👍 !!!",
+    "expected_approved": false,
+    "expected_violation_type": "INCOHERENT",
+    "scenario": "Ngoại lệ - Chỉ có ký tự đặc biệt"
+  },
+  {
+    "id": 78,
+    "rating": 5,
+    "comment": "ngon ngon ngon ngon ngon ngon",
+    "expected_approved": false,
+    "expected_violation_type": "INCOHERENT",
+    "scenario": "Ngoại lệ - Lặp từ vô nghĩa"
+  },
+  {
+    "id": 79,
+    "rating": 1,
+    "comment": "1234567890",
+    "expected_approved": false,
+    "expected_violation_type": "INCOHERENT",
+    "scenario": "Ngoại lệ - Chỉ có chữ số"
+  },
+  {
+    "id": 80,
+    "rating": 3,
+    "comment": ".................",
+    "expected_approved": false,
+    "expected_violation_type": "INCOHERENT",
+    "scenario": "Ngoại lệ - Chỉ có dấu chấm"
+  },
+  {
+    "id": 81,
+    "rating": 1,
+    "comment": "Bác sĩ Nguyễn Văn A người miền Tây nói giọng ngọng líu ngọng lô khó nghe, chê.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Kỳ thị / Phân biệt đối xử"
+  },
+  {
+    "id": 82,
+    "rating": 2,
+    "comment": "Phòng khám gì toàn bác sĩ nữ khám, không tin tưởng nổi phụ nữ làm chuyên môn.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Kỳ thị / Phân biệt đối xử"
+  },
+  {
+    "id": 83,
+    "rating": 1,
+    "comment": "Bác sĩ gì mà nhìn bóng gốm chết, lũ bê đê này đi làm y tế hại người.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Kỳ thị / Phân biệt đối xử"
+  },
+  {
+    "id": 84,
+    "rating": 1,
+    "comment": "Mấy đứa điều dưỡng người tộc nói tiếng kinh chưa sõi, phục vụ quá tệ.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Kỳ thị / Phân biệt đối xử"
+  },
+  {
+    "id": 85,
+    "rating": 1,
+    "comment": "Bác sĩ già lụ khụ rồi nghỉ hưu đi cho rảnh nợ, khám hành hạ người trẻ.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Kỳ thị / Phân biệt đối xử"
+  },
+  {
+    "id": 86,
+    "rating": 1,
+    "comment": "Bác sĩ làm ăn vô trách nhiệm, nếu không bồi thường tiền thuốc tôi sẽ cho người tới đập phá.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Đe dọa / Tống tiền / Phá hoại"
+  },
+  {
+    "id": 87,
+    "rating": 1,
+    "comment": "Liệu hồn tụi bây với tao, tao biết nhà riêng của bác sĩ B rồi đấy nhé.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Đe dọa / Tống tiền / Phá hoại"
+  },
+  {
+    "id": 88,
+    "rating": 1,
+    "comment": "Không trả lại tiền viện phí tao sẽ đứng trước cổng phòng khám chửi cho hết làm ăn.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Đe dọa / Tống tiền / Phá hoại"
+  },
+  {
+    "id": 89,
+    "rating": 1,
+    "comment": "Tao sẽ tung tin đồn tụi mày bán thuốc giả lên tất cả hội nhóm facebook cho sập tiệm.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Đe dọa / Tống tiền / Phá hoại"
+  },
+  {
+    "id": 90,
+    "rating": 1,
+    "comment": "Bác sĩ chuẩn bị tinh thần nhận hậu quả đi, tao không để yên chuyện này đâu.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Đe dọa / Tống tiền / Phá hoại"
+  },
+  {
+    "id": 91,
+    "rating": 1,
+    "comment": "Phòng khám làm ăn quá lừa đảo, khuyên mọi người qua phòng khám đa khoa X ở đối diện uy tín hơn nhiều.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bôi nhọ / Chơi xấu từ đối thủ"
+  },
+  {
+    "id": 92,
+    "rating": 2,
+    "comment": "Bên đây chém giá cắt cổ. Qua phòng khám của bác sĩ Y bên đường Z khám rẻ và tốt gấp vạn.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bôi nhọ / Chơi xấu từ đối thủ"
+  },
+  {
+    "id": 93,
+    "rating": 1,
+    "comment": "Bác sĩ Nguyễn Văn A chuyên môn dốt nát. Ai muốn điều trị dứt điểm hãy liên hệ phòng khám răng hàm mặt B.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bôi nhọ / Chơi xấu từ đối thủ"
+  },
+  {
+    "id": 94,
+    "rating": 1,
+    "comment": "Dịch vụ tệ nhất Việt Nam, thua xa chất lượng của bệnh viện đa khoa đối diện.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bôi nhọ / Chơi xấu từ đối thủ"
+  },
+  {
+    "id": 95,
+    "rating": 1,
+    "comment": "Phòng khám vẽ bệnh để cướp tiền của khách. Hãy tẩy chay và ủng hộ cơ sở y tế X.",
+    "expected_approved": false,
+    "expected_violation_type": "SPAM",
+    "scenario": "Bôi nhọ / Chơi xấu từ đối thủ"
+  },
+  {
+    "id": 96,
+    "rating": 1,
+    "comment": "Phòng khám làm chết người ngày hôm qua mà ém tin tức xuống không cho ai biết, thất đức.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Tin đồn y tế thất thiệt / Ác ý"
+  },
+  {
+    "id": 97,
+    "rating": 1,
+    "comment": "Bác sĩ ở đây dùng kim tiêm cũ đã qua sử dụng truyền bệnh cho người khác, kinh tởm.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Tin đồn y tế thất thiệt / Ác ý"
+  },
+  {
+    "id": 98,
+    "rating": 1,
+    "comment": "Thuốc của phòng khám toàn là thuốc giả Trung Quốc không rõ nguồn gốc gây suy gan thận.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Tin đồn y tế thất thiệt / Ác ý"
+  },
+  {
+    "id": 99,
+    "rating": 1,
+    "comment": "Nghe nói bác sĩ phòng khám này từng bị tước bằng vì làm chết bệnh nhân ở nơi khác.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Tin đồn y tế thất thiệt / Ác ý"
+  },
+  {
+    "id": 100,
+    "rating": 1,
+    "comment": "Phòng khám tự ý lấy nội tạng của bệnh nhân khi gây mê phẫu thuật, mọi người cẩn thận.",
+    "expected_approved": false,
+    "expected_violation_type": "TOXIC",
+    "scenario": "Tin đồn y tế thất thiệt / Ác ý"
+  }
+]

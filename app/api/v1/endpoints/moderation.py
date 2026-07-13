@@ -40,26 +40,55 @@ class ViolationType(str, Enum):
     CLEAN = "CLEAN"
 
 
-# Danh sách từ thô tục/nhạy cảm — quick filter trước khi gọi LLM
+# Danh sách từ thô tục/nhạy cảm thuần túy (100% vi phạm, không phụ thuộc ngữ cảnh)
+# Tránh đưa các từ như "lừa đảo", "khởi kiện" vào đây để tránh chặn oan câu phủ định (sẽ do LLM xử lý ở Lớp 2)
 TOXIC_KEYWORDS = [
-    "đồ ngu", "thằng điên", "con bò", "vô dụng", "lừa đảo", "ăn hại",
-    "ngu ngốc", "chó", "địt", "đụ", "fuck", "shit", "idiot", "scam",
-    "phá hoại", "tống tiền", "khởi kiện", "báo cáo", "tố cáo sai",
+    # Từ tục tĩu viết rõ
+    "địt", "đụ", "đéo", "đé0", "đoo", "cặc", "lồn", "buồi", "bùi", "nứng", "đụ má", "đậu má", 
+    "chịch", "vcl", "đkm", "đm", "dkm", "dm", "vl", "cl", "sml", "đmm", "đb",
+    # Từ xúc phạm/chửi bới nặng nề
+    "óc chó", "oc cho", "ngu l", "chó má", "cho ma", "đồ khốn", "đồ chó", "hãm l", "ham l",
+    "mất dạy", "mat day", "vô học", "vo hoc", "khốn nạn", "khon nan", "đồ ngu", "thằng điên", 
+    "con điên", "thằng chó", "ăn hại", "an hai", "đầu bò", "dau bo", "hãm tài", "ham tai",
+    # Tiếng Anh thô tục
+    "fuck", "shit", "bitch", "asshole", "idiot", "motherfucker",
+    # Từ khóa nhạy cảm / Đe dọa / Khiếu nại do người dùng yêu cầu chặn thẳng
+    "con bò", "vô dụng", "lừa đảo", "ngu ngốc", "chó", "scam", "phá hoại", 
+    "tống tiền", "khởi kiện", "báo cáo", "tố cáo sai"
 ]
 
+# Regex thông minh để bắt các liên kết và số điện thoại
 SPAM_PATTERNS = [
-    r"http[s]?://",          # URL
-    r"www\.",                # URL không có http
-    r"0[0-9]{9,10}",         # Số điện thoại VN
-    r"\+84[0-9]{9}",         # Số điện thoại VN quốc tế
-    r"zalo|telegram|whatsapp|messenger",  # App nhắn tin (quảng cáo)
-    r"giảm giá|khuyến mãi|ưu đãi|free|miễn phí",  # Quảng cáo
+    # Bắt link URL đầy đủ hoặc rút gọn (ví dụ: http://, https://, www., shopee.vn, t.me/, zalo.me)
+    r"https?://\S+",
+    r"www\.\S+",
+    r"\b[a-zA-Z0-9.-]+\.(?:com|net|org|vn|edu|gov|xyz|club|me|info|io|tk|ml|ga|cf|gq)\b",
+    r"t\.me/\S+",
+    r"zalo\.me/\S+",
+    r"fb\.me/\S+",
+    # Bắt số điện thoại Việt Nam (hỗ trợ cả khoảng trắng, dấu chấm, dấu gạch ngang)
+    r"(?:\+84|0)[35789](?:[\s.-]?\d){8}\b",  # Di động
+    r"(?:\+84|0)2(?:[\s.-]?\d){9}\b",       # Điện thoại bàn
+    # Bắt tài khoản mạng xã hội quảng cáo (ví dụ: @jobhot, @kiemtien)
+    r"@[a-zA-Z0-9_]{5,}\b"
 ]
 
 INCOHERENT_PATTERNS = [
     r"^[^a-zA-Zàáảãạăắặẳẵầấậẩẫâèéẻẽẹêếệểễơớợởỡôốộổỗưứựửữùúủũụìíỉĩịòóỏõọđ\s]{0,10}$",  # Ký tự không phải chữ
     r"^(.)\1{4,}$",           # Lặp 1 ký tự ≥ 5 lần (aaaaaaa)
     r"^[!?.,\s]{0,20}$",      # Chỉ dấu câu
+]
+
+# Regex bắt chửi thề viết cách điệu (dùng dấu chấm, gạch ngang, khoảng trắng ở giữa)
+TOXIC_REGEX_PATTERNS = [
+    r"đ\s*[\._\-]?\s*ị\s*[\._\-]?\s*t",
+    r"đ\s*[\._\-]?\s*é\s*[\._\-]?\s*[o0]",
+    r"c\s*[\._\-]?\s*ặ\s*[\._\-]?\s*c",
+    r"l\s*[\._\-]?\s*ồ\s*[\._\-]?\s*n",
+    r"b\s*[\._\-]?\s*u\s*[\._\-]?\s*ồ\s*[\._\-]?\s*i",
+    r"\bđ\s*[\._\-]?\s*(?:k\s*[\._\-]?\s*)?m\b",
+    r"\bv\s*[\._\-]?\s*(?:c\s*[\._\-]?\s*)?l\b",
+    r"v\s*[\._\-]?\s*ã\s*[\._\-]?\s*i\s*[\._\-]?\s*[lđc]"
 ]
 
 
@@ -107,6 +136,14 @@ NHÓM 4: [INCOHERENT] VÔ NGHĨA / GÕ LINH TINH
 ✅ CHO PHÉP bình luận ngắn nhưng có nội dung rõ ràng (ví dụ: "Rất tốt!", "Hài lòng.").
 
 ╔══════════════════════════════════════════════════════════════════╗
+║      HƯỚNG DẪN XỬ LÝ SỐ SAO (RATING) NHẸ NHÀNG & HỢP LÝ          ║
+╚══════════════════════════════════════════════════════════════════╝
+- Đánh giá 1-2 sao (Sao quá thấp): Để bảo vệ hình ảnh và uy tín phòng khám, mọi đánh giá từ 1-2 sao đều BẮT BUỘC bị từ chối (thiết lập approved = false).
+- Đánh giá 3-5 sao: Cho hiển thị nếu không có vi phạm. Tuy nhiên, nếu phát hiện bẫy phá rối (Đánh 5 sao nhưng bình luận chửi thề hoặc chèn quảng cáo) -> vẫn phải chặn (Approved = false).
+
+
+
+╔══════════════════════════════════════════════════════════════════╗
 ║                   QUY TẮC PHÂN TÍCH                             ║
 ╚══════════════════════════════════════════════════════════════════╝
 - Hãy đánh giá bình luận DỰA TRÊN NGỮ CẢNH TỔNG THỂ, không phán xét quá mức một từ riêng lẻ.
@@ -151,13 +188,21 @@ class ModerationResponse(BaseModel):
 # QUICK FILTER: Kiểm tra bằng regex/keyword TRƯỚC khi gọi LLM
 # Giúp tiết kiệm tài nguyên Ollama cho các trường hợp vi phạm hiển nhiên
 # =====================================================================
-def quick_filter(comment: str) -> ModerationResponse | None:
+def quick_filter(comment: str, rating: int) -> ModerationResponse | None:
     """
     Kiểm tra nhanh bằng pattern matching trước khi gọi LLM.
     Trả về kết quả ngay nếu phát hiện vi phạm rõ ràng.
     Trả về None nếu cần phân tích sâu hơn bằng LLM.
     """
     comment_lower = comment.lower()
+
+    # Kiểm tra số sao thấp (1-2 sao) -> Tự động từ chối luôn để bảo vệ hình ảnh phòng khám
+    if rating <= 2:
+        return ModerationResponse(
+            approved=False,
+            violation_type="TOXIC",
+            reason=f"Đánh giá sao quá thấp ({rating}/5 sao) không được phép hiển thị công khai."
+        )
 
     # Kiểm tra quá ngắn / vô nghĩa
     if len(comment.strip()) < 3:
@@ -173,10 +218,19 @@ def quick_filter(comment: str) -> ModerationResponse | None:
             return ModerationResponse(
                 approved=False,
                 violation_type="INCOHERENT",
-                reason=f"Bình luận vô nghĩa hoặc chỉ là ký tự đặc biệt, vi phạm quy tắc 4.1-4.3."
+                reason="Bình luận vô nghĩa hoặc chỉ là ký tự đặc biệt, vi phạm quy tắc 4.1-4.3."
             )
 
-    # Kiểm tra từ thô tục rõ ràng
+    # Kiểm tra các mẫu chửi thề cách điệu (Regex) trước
+    for pattern in TOXIC_REGEX_PATTERNS:
+        if re.search(pattern, comment_lower, re.IGNORECASE):
+            return ModerationResponse(
+                approved=False,
+                violation_type="TOXIC",
+                reason="Bình luận chứa từ ngữ chửi thề viết cách điệu, vi phạm quy tắc 1.1."
+            )
+
+    # Kiểm tra từ thô tục rõ ràng viết liền
     for keyword in TOXIC_KEYWORDS:
         if keyword in comment_lower:
             return ModerationResponse(
@@ -252,7 +306,7 @@ async def check_moderation(request: ModerationRequest):
     comment = (request.comment or "").strip()
 
     # ── Lớp 1: Quick Filter (không cần GPU) ──
-    quick_result = quick_filter(comment)
+    quick_result = quick_filter(comment, request.rating)
     if quick_result is not None:
         logger.info(
             f"[Moderation/QuickFilter] approved={quick_result.approved} "

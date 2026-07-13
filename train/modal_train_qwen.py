@@ -17,6 +17,13 @@ volume = modal.Volume.from_name("clinic-model-vol", create_if_missing=True)
 # 2. Define App
 app = modal.App(name="clinic-ai-training")
 
+import os
+from pathlib import Path
+
+# Tự động lấy đường dẫn tuyệt đối của thư mục dataset nằm cùng cấp với file script này
+current_dir = Path(__file__).parent
+dataset_dir = current_dir / "dataset"
+
 # 3. Define Docker Image
 image = (
     modal.Image.debian_slim(python_version="3.10")
@@ -32,8 +39,8 @@ image = (
         "sentencepiece",
         "protobuf"
     )
+    .add_local_dir(local_path=str(dataset_dir), remote_path="/workspace/dataset")
 )
-
 # 4. Load Secrets dynamically from local .env
 secrets_list = []
 local_keys = {}
@@ -50,7 +57,7 @@ else:
 @app.function(
     image=image,
     volumes={"/storage": volume},
-    gpu="a100",  # Using A100 for fast QLoRA training
+    gpu="h100",  # Using H100 for fast QLoRA training
     timeout=14400,  # 4 hours max timeout
     secrets=secrets_list,
 )
@@ -113,8 +120,16 @@ def train():
     model.print_trainable_parameters()
 
     # 3. Chuẩn bị Dataset
-    print("📥 Đang tải dataset tư vấn y tế từ HuggingFace...")
-    raw_dataset = load_dataset("hungnm/vietnamese-medical-qa", split="train")
+    import json
+    print("📥 Đang tải dataset tư vấn y tế từ file local (V2)...")
+    with open("/workspace/dataset/train_v2.json", "r", encoding="utf-8") as f:
+        train_data_raw = json.load(f)
+    with open("/workspace/dataset/valid_v2.json", "r", encoding="utf-8") as f:
+        val_data_raw = json.load(f)
+        
+    from datasets import Dataset
+    raw_train = Dataset.from_list(train_data_raw)
+    raw_val = Dataset.from_list(val_data_raw)
 
     system_prompt = (
         "Bạn là một bác sĩ tư vấn y tế ảo của phòng khám ClinicPro. "
@@ -136,32 +151,31 @@ def train():
             texts.append(text)
         return {"text": texts}
 
-    # Map và Train/Val Split
-    print("🧹 Đang xử lý dữ liệu và chia tập train/val...")
-    formatted_dataset = raw_dataset.map(formatting_prompts_func, batched=True, remove_columns=raw_dataset.column_names)
+    # Map dữ liệu
+    print("🧹 Đang xử lý dữ liệu format ChatML...")
+    formatted_train = raw_train.map(formatting_prompts_func, batched=True, remove_columns=raw_train.column_names)
+    formatted_val = raw_val.map(formatting_prompts_func, batched=True, remove_columns=raw_val.column_names)
     
     # Tokenize
     def tokenize_func(example):
         return tokenizer(example["text"], truncation=True, max_length=max_seq_length, padding=False)
         
-    tokenized_dataset = formatted_dataset.map(tokenize_func, batched=True, remove_columns=["text"])
-    split_ds = tokenized_dataset.train_test_split(test_size=0.1, seed=42)
-    train_dataset = split_ds["train"]
-    eval_dataset = split_ds["test"]
+    train_dataset = formatted_train.map(tokenize_func, batched=True, remove_columns=["text"])
+    eval_dataset = formatted_val.map(tokenize_func, batched=True, remove_columns=["text"])
 
     print(f"📊 Dataset: {len(train_dataset)} train samples | {len(eval_dataset)} val samples")
 
     # 4. Cấu hình Trainer
-    output_dir = Path("/storage/checkpoints")
+    output_dir = Path("/storage/checkpoints_qwen_v2")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     from transformers import TrainingArguments, Trainer, DataCollatorForLanguageModeling
 
     training_args = TrainingArguments(
         output_dir=str(output_dir),
-        per_device_train_batch_size=4,
-        per_device_eval_batch_size=4,
-        gradient_accumulation_steps=4,  # Effective Batch Size = 16
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=16,
+        gradient_accumulation_steps=2,  # Effective Batch Size = 32
         optim="paged_adamw_8bit",
         num_train_epochs=3,
         eval_strategy="steps",
@@ -194,7 +208,7 @@ def train():
     print("🎉 Hoàn tất huấn luyện!")
 
     # Lưu adapter
-    lora_dir = Path("/storage/clinic_qwen_7b_lora")
+    lora_dir = Path("/storage/clinic_qwen_7b_lora_v2")
     if lora_dir.exists():
         shutil.rmtree(lora_dir)
     lora_dir.mkdir(parents=True, exist_ok=True)
@@ -220,7 +234,7 @@ def train():
     merged_model = merged_model.merge_and_unload()
 
     # Lưu model hoàn chỉnh
-    final_output_dir = Path("/storage/clinic_qwen_7b_merged")
+    final_output_dir = Path("/storage/clinic_qwen_7b_merged_v2")
     if final_output_dir.exists():
         shutil.rmtree(final_output_dir)
     final_output_dir.mkdir(parents=True, exist_ok=True)
