@@ -39,7 +39,7 @@ volume = modal.Volume.from_name("clinic-model-vol", create_if_missing=True)
     gpu="H100", # Nâng cấp lên H100 để đánh giá siêu tốc
     timeout=3600 # Tăng timeout lên 1 tiếng
 )
-def evaluate_models():
+def evaluate_models(hf_token: str, hf_username: str):
     import json
     import time
     import torch
@@ -49,7 +49,7 @@ def evaluate_models():
     from rouge_score import rouge_scorer
     from bert_score import score as bert_score_func
     from bleurt import score as bleurt_score
-    print("📥 Đang đọc 100 câu hỏi từ Nhà thuốc Long Châu (đã tải sẵn lên siêu máy tính)...")
+    print("📥 Đang đọc 100 câu hỏi đánh giá y tế từ file test_100_v2.json...")
     # ==============================================================================
     # NGUỒN TÀI LIỆU ĐÁNH GIÁ V2 (100 Câu Test Cố Định)
     # Lấy từ file test_100_v2.json ở local đẩy lên Modal
@@ -58,9 +58,9 @@ def evaluate_models():
         test_data = json.load(f)
     
     models_to_test = {
-        "qwen": "/storage/clinic_qwen_7b_merged_v2",
-        "seallm": "/storage/clinic_seallm_7b_merged_v2",
-        "llama": "/storage/clinic_vinallama_7b_merged_v2"
+        "qwen": f"{hf_username}/clinic-qwen-7b-v2",
+        "seallm": f"{hf_username}/clinic-seallm-7b-v2",
+        "llama": f"{hf_username}/clinic-vinallama-7b-v2"
     }
     
     results = {}
@@ -79,13 +79,14 @@ def evaluate_models():
         print(f"\n🚀 --- ĐANG ĐÁNH GIÁ MÔ HÌNH: {model_name.upper()} ---")
         detailed_logs[model_name] = []
         try:
-            tokenizer = AutoTokenizer.from_pretrained(model_path)
+            tokenizer = AutoTokenizer.from_pretrained(model_path, token=hf_token)
             
             # Load mô hình ở chế độ 4-bit để tiết kiệm RAM GPU
             model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 device_map="auto",
-                quantization_config=bnb_config
+                quantization_config=bnb_config,
+                token=hf_token
             )
             
             total_tokens = 0
@@ -114,8 +115,8 @@ def evaluate_models():
                 
                 start_time = time.time()
                 with torch.no_grad():
-                    # Giới hạn 150 token để test nhanh hơn
-                    outputs = model.generate(**inputs, max_new_tokens=150, do_sample=False)
+                    # Tăng giới hạn lên 512 token để model có thể trả lời đầy đủ các câu dài
+                    outputs = model.generate(**inputs, max_new_tokens=512, do_sample=False)
                 end_time = time.time()
                 
                 # Tính số token sinh ra (chỉ lấy phần model tự sinh, trừ đi prompt)
@@ -184,18 +185,36 @@ def evaluate_models():
             print(f"❌ Lỗi khi đánh giá {model_name}: {e}")
             results[model_name] = {"error": str(e)}
 
-    # Lưu kết quả xuống Volume (V2)
-    output_path = "/storage/evaluation_results_v2.json"
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=4)
-        
-    logs_path = "/storage/evaluation_detailed_logs_v2.json"
-    with open(logs_path, "w", encoding="utf-8") as f:
-        json.dump(detailed_logs, f, ensure_ascii=False, indent=4)
-        
-    print(f"\n✅ Hoàn tất toàn bộ! Kết quả đã được lưu tại {output_path} và log chi tiết tại {logs_path}")
+    return results, detailed_logs
 
 @app.local_entrypoint()
 def main():
-    print("Bắt đầu đẩy lệnh đánh giá lên Modal...")
-    evaluate_models.remote()
+    import json
+    from dotenv import load_dotenv
+    
+    # Load .env file
+    env_path = current_dir.parent / ".env"
+    load_dotenv(env_path)
+    
+    hf_token = os.getenv("HF_TOKEN")
+    hf_username = "quockietdev"
+    
+    if not hf_token:
+        print("❌ Không tìm thấy HF_TOKEN trong file .env!")
+        return
+
+    print(f"Bắt đầu đẩy lệnh đánh giá lên Modal cho user: {hf_username}...")
+    results, detailed_logs = evaluate_models.remote(hf_token, hf_username)
+    
+    # Lưu kết quả xuống máy tính cục bộ
+    output_path = dataset_dir / "evaluation_results_v2.json"
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=4)
+        
+    logs_path = dataset_dir / "evaluation_detailed_logs_v2.json"
+    with open(logs_path, "w", encoding="utf-8") as f:
+        json.dump(detailed_logs, f, ensure_ascii=False, indent=4)
+        
+    print(f"\n✅ Hoàn tất toàn bộ! Kết quả đã được TẢI VỀ và lưu tại:")
+    print(f"   - {output_path}")
+    print(f"   - {logs_path}")

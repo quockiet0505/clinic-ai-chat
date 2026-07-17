@@ -1,0 +1,23 @@
+{
+    "qwen": {
+        "bleu": 0.0479,
+        "rouge_l": 0.319,
+        "bertscore": 0.7068,
+        "bleurt": 0.3401,
+        "tokens_per_sec": 32.57
+    },
+    "seallm": {
+        "bleu": 0.026,
+        "rouge_l": 0.2606,
+        "bertscore": 0.6509,
+        "bleurt": 0.3311,
+        "tokens_per_sec": 34.68
+    },
+    "llama": {
+        "bleu": 0.0203,
+        "rouge_l": 0.2205,
+        "bertscore": 0.5984,
+        "bleurt": 0.3895,
+        "tokens_per_sec": 32.6
+    }
+}
