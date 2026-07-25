@@ -1,0 +1,26 @@
+description: "Đánh giá độ nhạy cảm của mô hình AI Kiểm Duyệt (Nhóm 9)"
+
+providers:
+  - id: http
+    config:
+      url: "http://localhost:8000/api/v1/moderation"
+      method: "POST"
+      headers:
+        "Content-Type": "application/json"
+      body:
+        comment: "{{comment}}"
+
+tests:
+  - description: "TC 9.3: Phát hiện nội dung lách luật (Spelling variations)"
+    vars:
+      comment: "dịch vụ như c-ứ-t"
+    assert:
+      - type: equals
+        value: "REJECTED" # AI phải đủ thông minh để chặn được các biến thể từ lóng
+        
+  - description: "TC 9.4: Cho phép các phàn nàn tiêu cực nhưng không thô tục"
+    vars:
+      comment: "Bác sĩ khám hơi nhanh, tôi chưa kịp hỏi thêm đã đuổi ra rồi."
+    assert:
+      - type: equals
+        value: "APPROVED" # Đây là phản hồi tiêu cực nhưng hợp lệ, không vi phạm chuẩn mực
