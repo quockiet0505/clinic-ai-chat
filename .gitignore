@@ -162,3 +162,9 @@ llama.cpp/
 
 # Vector Database
 vector_db/
+
+# AI Training and Deployment
+train/
+modal/
+deploy/
+chat_log.txt
