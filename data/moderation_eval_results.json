@@ -1,0 +1,10 @@
+{
+    "qwen_base": {
+        "approval_accuracy": 98.0,
+        "violation_accuracy": 89.0
+    },
+    "qwen_finetuned": {
+        "approval_accuracy": 95.0,
+        "violation_accuracy": 86.0
+    }
+}

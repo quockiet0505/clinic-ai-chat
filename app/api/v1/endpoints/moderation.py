@@ -52,9 +52,7 @@ TOXIC_KEYWORDS = [
     "con điên", "thằng chó", "ăn hại", "an hai", "đầu bò", "dau bo", "hãm tài", "ham tai",
     # Tiếng Anh thô tục
     "fuck", "shit", "bitch", "asshole", "idiot", "motherfucker",
-    # Từ khóa nhạy cảm / Đe dọa / Khiếu nại do người dùng yêu cầu chặn thẳng
-    "con bò", "vô dụng", "lừa đảo", "ngu ngốc", "chó", "scam", "phá hoại", 
-    "tống tiền", "khởi kiện", "báo cáo", "tố cáo sai"
+    # Từ khóa nhạy cảm / Đe dọa / Khiếu nại (đã bị xóa bỏ khỏi Lớp 1 do dễ bắt nhầm câu phủ định, chuyển sang Lớp 2)
 ]
 
 # Regex thông minh để bắt các liên kết và số điện thoại
@@ -105,6 +103,7 @@ NHÓM 1: [TOXIC] TỪ NGỮ THÔ TỤC / CÔNG KÍCH CÁ NHÂN
 1.2 TỪ CHỐI nếu tấn công cá nhân bác sĩ/nhân viên bằng tên riêng kèm lời lẽ xúc phạm.
 1.3 TỪ CHỐI nếu có lời đe dọa, uy hiếp, tống tiền, kêu gọi tẩy chay phối hợp.
 1.4 TỪ CHỐI nếu kỳ thị giới tính, dân tộc, tôn giáo.
+1.5 TỪ CHỐI nếu bình luận lan truyền tin đồn y tế thất thiệt, tung tin giả ác ý về phòng khám.
 ✅ CHO PHÉP phản hồi tiêu cực LỊCH SỰ (ví dụ: "Chờ đợi quá lâu", "Bác sĩ không nhiệt tình").
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -114,6 +113,7 @@ NHÓM 2: [SPAM] TIN RÁC / QUẢNG CÁO NGOÀI LỀ
 2.2 TỪ CHỐI nếu chứa số điện thoại, địa chỉ email quảng cáo dịch vụ bên ngoài.
 2.3 TỪ CHỐI nếu quảng cáo sản phẩm/thuốc/dịch vụ không thuộc phòng khám.
 2.4 TỪ CHỐI nếu bình luận trông giống bot: lặp từ ngữ giống hệt nhau nhiều lần.
+2.5 TỪ CHỐI nếu bình luận có ý đồ bôi nhọ, chơi xấu từ đối thủ (chê bai và lôi kéo bệnh nhân sang cơ sở khác).
 ✅ CHO PHÉP đề cập đến tên phòng khám hoặc bác sĩ trong ngữ cảnh đánh giá thật sự.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
