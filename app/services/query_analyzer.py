@@ -36,8 +36,8 @@ Các Intent hợp lệ:
 1. EMERGENCY: Khẩn cấp, nguy hiểm tính mạng.
 2. BOOKING: Yêu cầu đặt lịch khám, hẹn ngày giờ, xem lịch trống.
 3. CLINIC_SYMPTOM: Hỏi phòng khám có khoa nào khám bệnh abc.
-4. DOCTOR_INFO: Hỏi thông tin về bác sĩ, chuyên khoa (chỉ khi HỎI THÔNG TIN, nếu đang trong luồng ĐẶT LỊCH mà cung cấp tên bác sĩ thì intent phải là BOOKING).
-5. CLINIC_INFO: Hỏi thông tin phòng khám, giá tiền, giờ làm việc.
+4. DOCTOR_INFO: Hỏi thông tin về bác sĩ, chuyên khoa, HỎI GIÁ KHÁM CỦA BÁC SĨ (chỉ khi HỎI THÔNG TIN, nếu đang trong luồng ĐẶT LỊCH mà cung cấp tên bác sĩ thì intent phải là BOOKING).
+5. CLINIC_INFO: Hỏi thông tin phòng khám, giá DỊCH VỤ / XÉT NGHIỆM, giờ làm việc. (TUYỆT ĐỐI KHÔNG dùng nếu người dùng hỏi giá khám của Bác sĩ).
 6. MEDICAL_QA: Xin tư vấn y khoa, thuốc men, bệnh lý.
 7. PERSONAL_RECORD: Hỏi về hồ sơ bệnh án, kết quả khám của bản thân.
 8. GENERAL: Chào hỏi thông thường, CÂU HỎI NGOÀI LỀ, KHÔNG LIÊN QUAN ĐẾN Y TẾ HOẶC PHÒNG KHÁM, KHÔNG RÕ NGHĨA.

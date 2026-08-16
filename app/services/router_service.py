@@ -96,6 +96,8 @@ Hãy in ra 1 từ khóa:"""
             "giá khám", "học phí", "phí khám",
         ]
         if any(kw in msg_lower for kw in clinic_info_keywords):
+            if "bác sĩ" in msg_lower or "bac si" in msg_lower:
+                return "DOCTOR_INFO"
             return "CLINIC_INFO"
 
         # Medical QA rules - chỉ bắt khi có nội dung y tế mang tính triệu chứng rõ ràng

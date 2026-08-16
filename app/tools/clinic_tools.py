@@ -69,6 +69,11 @@ def get_doctors_tool(expertise_name: Optional[str] = None, doctor_name: Optional
         
         if doctor_name:
             keyword_doc = doctor_name.strip().lower()
+            # Loại bỏ các tiền tố để match chính xác hơn
+            for prefix in ["bác sĩ ", "bac si ", "bác sỹ ", "bs ", "bs. ", "thạc sĩ ", "tiến sĩ "]:
+                keyword_doc = keyword_doc.replace(prefix, "")
+            keyword_doc = keyword_doc.strip()
+            
             if raw_doctors:
                 raw_doctors = [d for d in raw_doctors if keyword_doc in (d.get("fullName") or "").lower()]
 

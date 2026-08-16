@@ -12,20 +12,32 @@ class ChatService:
     def __init__(
         self,
         llm_service: LLMService | None = None,
-        retriever: KnowledgeRetriever | None = None,
-        medical_retriever: MedicalRetriever | None = None,
+        retriever=None,
+        medical_retriever=None,
         router_service: RouterService | None = None,
         analyzer_service: QueryAnalyzerService | None = None,
     ):
         self.llm_service = llm_service or LLMService()
-        self.retriever = retriever or KnowledgeRetriever()
-        self.medical_retriever = medical_retriever or MedicalRetriever()
+        self._retriever = retriever
+        self._medical_retriever = medical_retriever
         self.router_service = router_service or RouterService()
         self.analyzer_service = analyzer_service or QueryAnalyzerService()
         
         self._sessions: dict[str, list] = {}
         self._session_tokens: dict[str, str | None] = {}
         self._session_params: dict[str, dict] = {}
+
+    @property
+    def retriever(self):
+        if self._retriever is None:
+            self._retriever = KnowledgeRetriever()
+        return self._retriever
+
+    @property
+    def medical_retriever(self):
+        if self._medical_retriever is None:
+            self._medical_retriever = MedicalRetriever()
+        return self._medical_retriever
 
     def _get_history(self, session_id: str) -> list:
         history = self._sessions.get(session_id, [])
@@ -401,14 +413,14 @@ Kết quả:"""
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
                 knowledge = "[DIRECT_REPLY] " + get_doctors_tool.invoke(params)
-            elif any(kw in message.lower() for kw in ["danh sách bác sĩ", "tìm bác sĩ", "đội ngũ bác sĩ", "bác sĩ nào", "danh sach bac si", "tim bac si"]):
+            elif any(kw in message.lower() for kw in ["danh sách bác sĩ", "tìm bác sĩ", "đội ngũ bác sĩ", "bác sĩ nào", "danh sach bac si", "tim bac si", "bác sĩ"]):
                 knowledge = "[DIRECT_REPLY] " + get_doctors_tool.invoke({})
             else:
                 knowledge = "[DIRECT_REPLY] " + get_specialties_tool.invoke({})
         elif intent == "CLINIC_INFO":
             from app.tools.clinic_tools import get_services_tool, get_clinic_info_tool
             msg_lower = message.lower()
-            if any(kw in msg_lower for kw in ["giá", "dịch vụ", "xét nghiệm", "chi phí", "bao nhiêu"]):
+            if any(kw in msg_lower for kw in ["dịch vụ", "xét nghiệm"]):
                 knowledge = "[DIRECT_REPLY] " + get_services_tool.invoke({"featured_only": False})
             else:
                 knowledge = "[DIRECT_REPLY] " + get_clinic_info_tool.invoke({})
@@ -576,14 +588,14 @@ Kết quả:"""
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
                 knowledge = "[DIRECT_REPLY] " + get_doctors_tool.invoke(params)
-            elif any(kw in message.lower() for kw in ["danh sách bác sĩ", "tìm bác sĩ", "đội ngũ bác sĩ", "bác sĩ nào", "danh sach bac si", "tim bac si"]):
+            elif any(kw in message.lower() for kw in ["danh sách bác sĩ", "tìm bác sĩ", "đội ngũ bác sĩ", "bác sĩ nào", "danh sach bac si", "tim bac si", "giá", "bác sĩ", "chi phí"]):
                 knowledge = "[DIRECT_REPLY] " + get_doctors_tool.invoke({})
             else:
                 knowledge = "[DIRECT_REPLY] " + get_specialties_tool.invoke({})
         elif intent == "CLINIC_INFO":
             from app.tools.clinic_tools import get_services_tool, get_clinic_info_tool
             msg_lower = message.lower()
-            if any(kw in msg_lower for kw in ["giá", "dịch vụ", "xét nghiệm", "chi phí", "bao nhiêu"]):
+            if any(kw in msg_lower for kw in ["dịch vụ", "xét nghiệm"]):
                 knowledge = "[DIRECT_REPLY] " + get_services_tool.invoke({"featured_only": False})
             else:
                 knowledge = "[DIRECT_REPLY] " + get_clinic_info_tool.invoke({})

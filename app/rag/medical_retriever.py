@@ -5,10 +5,7 @@ from datasets import load_dataset
 
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-try:
-    from langchain_huggingface import HuggingFaceEmbeddings
-except ImportError:
-    from langchain_community.embeddings import HuggingFaceEmbeddings
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.config import settings
@@ -29,6 +26,10 @@ class MedicalRetriever:
 
     def __init__(self, persist_dir: Path | None = None):
         self.persist_dir = persist_dir or MEDICAL_DB_DIR
+        try:
+            from langchain_huggingface import HuggingFaceEmbeddings
+        except ImportError:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
         self.embeddings = HuggingFaceEmbeddings(
             model_name="nomic-ai/nomic-embed-text-v1.5",
             model_kwargs={"trust_remote_code": True, "device": "cpu"}

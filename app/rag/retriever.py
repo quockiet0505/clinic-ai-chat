@@ -4,10 +4,7 @@ from pathlib import Path
 
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-try:
-    from langchain_huggingface import HuggingFaceEmbeddings
-except ImportError:
-    from langchain_community.embeddings import HuggingFaceEmbeddings
+
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 
 from app.config import settings
@@ -29,6 +26,10 @@ class KnowledgeRetriever:
     def __init__(self, knowledge_dir: Path | None = None, persist_dir: Path | None = None):
         self.knowledge_dir = knowledge_dir or KNOWLEDGE_DIR
         self.persist_dir = persist_dir or VECTOR_DB_DIR
+        try:
+            from langchain_huggingface import HuggingFaceEmbeddings
+        except ImportError:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
         self.embeddings = HuggingFaceEmbeddings(
             model_name="nomic-ai/nomic-embed-text-v1.5",
             model_kwargs={"trust_remote_code": True, "device": "cpu"}

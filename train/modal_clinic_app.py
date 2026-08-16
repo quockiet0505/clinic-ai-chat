@@ -59,6 +59,7 @@ image = (
         "protobuf",
         "einops",
         "langchain-huggingface",
+        "langchain-text-splitters",
         # LLM (Transformers)
         "huggingface_hub",
         "transformers>=4.45.0",
