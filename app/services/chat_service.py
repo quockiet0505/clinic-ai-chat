@@ -197,6 +197,16 @@ class ChatService:
             self._session_tokens[session_id] = access_token
         return self._session_tokens.get(session_id)
 
+    def _clean_params(self, params: dict) -> dict:
+        cleaned = params.copy()
+        for key in ["doctor_name", "expertise_name", "service_name", "symptoms"]:
+            val = cleaned.get(key)
+            if val:
+                val_str = str(val).strip().lower()
+                if "nếu có" in val_str or val_str in ["chuyên khoa", "bác sĩ", "dịch vụ", "triệu chứng", "tên bác sĩ", "tên chuyên khoa", "tên dịch vụ"]:
+                    cleaned[key] = None
+        return cleaned
+
     def _should_rewrite_query(self, message: str, history: list) -> bool:
         if not history:
             return False
@@ -384,11 +394,12 @@ Kết quả:"""
                     params["symptoms"] = message.strip()
             
         merged_params = memory_params.copy()
-        params = merged_params
+        merged_params.update(params)
+        params = self._clean_params(merged_params)
         
         # Lưu lại vào session memory cho các lượt sau
         self._session_params[session_id] = params
-
+ 
             
         # Xử lý lấy bối cảnh (Knowledge/Tools)
         knowledge = ""
@@ -405,6 +416,8 @@ Kết quả:"""
             knowledge = get_medical_records_tool.invoke({"access_token": access_token})
             if "Lỗi 403" in knowledge:
                 return "Dạ, phiên đăng nhập của bạn đã hết hạn hoặc không hợp lệ. Bạn vui lòng đăng xuất và đăng nhập lại trên ứng dụng để tôi có thể tải hồ sơ cho bạn nhé!"
+            if "HỆ THỐNG BÁO:" in knowledge:
+                return knowledge.replace("HỆ THỐNG BÁO:", "").strip()
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
@@ -555,7 +568,7 @@ Kết quả:"""
             
         merged_params = memory_params.copy()
         merged_params.update(params)
-        params = merged_params
+        params = self._clean_params(merged_params)
         
         # Lưu lại vào session memory cho các lượt sau
         self._session_params[session_id] = params
@@ -575,6 +588,9 @@ Kết quả:"""
             knowledge = get_medical_records_tool.invoke({"access_token": access_token})
             if "Lỗi 403" in knowledge:
                 yield "Dạ, phiên đăng nhập của bạn đã hết hạn hoặc không hợp lệ. Bạn vui lòng đăng xuất và đăng nhập lại trên ứng dụng để tôi có thể tải hồ sơ cho bạn nhé!"
+                return
+            if "HỆ THỐNG BÁO:" in knowledge:
+                yield knowledge.replace("HỆ THỐNG BÁO:", "").strip()
                 return
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
