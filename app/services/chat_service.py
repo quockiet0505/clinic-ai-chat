@@ -387,7 +387,7 @@ Kết quả:"""
             
         # Bắt buộc khóa luồng lại nếu đang đặt lịch dở dang
         if is_booking:
-            if intent not in ["BOOKING", "GENERAL"] and not (memory_params.get("time_slot") and not memory_params.get("symptoms") and len(message.split()) < 10):
+            if intent not in ["BOOKING", "GENERAL"] and not (memory_params.get("time_slot") and not memory_params.get("symptoms") and len(message.split()) < 15):
                 memory_params["confirming_cancel"] = True
                 memory_params["pending_message"] = message
                 self._session_params[session_id] = memory_params
@@ -396,7 +396,7 @@ Kết quả:"""
                 intent = "BOOKING"
                 # Nếu đã chọn được giờ mà chưa có triệu chứng, gán message hiện tại thành triệu chứng
                 if memory_params.get("time_slot") and not memory_params.get("symptoms"):
-                    params["symptoms"] = message.strip()
+                    params = {"symptoms": message.strip()} # Only accept symptoms, ignore LLM hallucinated params
             
         merged_params = memory_params.copy()
         merged_params.update(params)
@@ -418,11 +418,12 @@ Kết quả:"""
             if not access_token or access_token == "null" or access_token == "undefined":
                 return "Dạ, để xem hồ sơ bệnh án, bạn vui lòng đăng nhập vào tài khoản trên web hoặc app nhé."
             from app.tools.clinic_tools import get_medical_records_tool
-            knowledge = get_medical_records_tool.invoke({"access_token": access_token})
-            if "Lỗi 403" in knowledge:
+            knowledge_raw = get_medical_records_tool.invoke({"access_token": access_token})
+            if "Lỗi 403" in knowledge_raw:
                 return "Dạ, phiên đăng nhập của bạn đã hết hạn hoặc không hợp lệ. Bạn vui lòng đăng xuất và đăng nhập lại trên ứng dụng để tôi có thể tải hồ sơ cho bạn nhé!"
-            if "HỆ THỐNG BÁO:" in knowledge:
-                return knowledge.replace("HỆ THỐNG BÁO:", "").strip()
+            if "HỆ THỐNG BÁO:" in knowledge_raw:
+                return knowledge_raw.replace("HỆ THỐNG BÁO:", "").strip()
+            knowledge = "[DIRECT_REPLY] " + knowledge_raw
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
@@ -560,7 +561,7 @@ Kết quả:"""
             if intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
                 intent = "BOOKING"
                 
-            if intent not in ["BOOKING", "GENERAL"] and not (memory_params.get("time_slot") and not memory_params.get("symptoms") and len(message.split()) < 10):
+            if intent not in ["BOOKING", "GENERAL"] and not (memory_params.get("time_slot") and not memory_params.get("symptoms") and len(message.split()) < 15):
                 memory_params["confirming_cancel"] = True
                 memory_params["pending_message"] = message
                 self._session_params[session_id] = memory_params
@@ -569,7 +570,7 @@ Kết quả:"""
                 intent = "BOOKING"
                 # Nếu đã chọn được giờ mà chưa có triệu chứng, gán message hiện tại thành triệu chứng
                 if memory_params.get("time_slot") and not memory_params.get("symptoms"):
-                    params["symptoms"] = message.strip()
+                    params = {"symptoms": message.strip()} # Only accept symptoms, ignore LLM hallucinated params
             
         merged_params = memory_params.copy()
         merged_params.update(params)
@@ -590,13 +591,14 @@ Kết quả:"""
                 yield "Dạ, để xem hồ sơ bệnh án, bạn vui lòng đăng nhập vào tài khoản trên web hoặc app nhé."
                 return
             from app.tools.clinic_tools import get_medical_records_tool
-            knowledge = get_medical_records_tool.invoke({"access_token": access_token})
-            if "Lỗi 403" in knowledge:
+            knowledge_raw = get_medical_records_tool.invoke({"access_token": access_token})
+            if "Lỗi 403" in knowledge_raw:
                 yield "Dạ, phiên đăng nhập của bạn đã hết hạn hoặc không hợp lệ. Bạn vui lòng đăng xuất và đăng nhập lại trên ứng dụng để tôi có thể tải hồ sơ cho bạn nhé!"
                 return
-            if "HỆ THỐNG BÁO:" in knowledge:
-                yield knowledge.replace("HỆ THỐNG BÁO:", "").strip()
+            if "HỆ THỐNG BÁO:" in knowledge_raw:
+                yield knowledge_raw.replace("HỆ THỐNG BÁO:", "").strip()
                 return
+            knowledge = "[DIRECT_REPLY] " + knowledge_raw
         elif intent in ["DOCTOR_INFO", "CLINIC_SYMPTOM"]:
             from app.tools.clinic_tools import get_doctors_tool, get_specialties_tool
             if params.get("doctor_name") or params.get("expertise_name"):
