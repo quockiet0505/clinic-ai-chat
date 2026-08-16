@@ -51,8 +51,6 @@ Yêu cầu JSON có cấu trúc sau:
     "parameters": {{
         "doctor_name": "Tên bác sĩ (nếu có)",
         "expertise_name": "Tên chuyên khoa. NẾU USER CHỈ NÓI TRIỆU CHỨNG, BẮT BUỘC TỰ ĐỘNG SUY LUẬN CHUYÊN KHOA (VD: đau đầu -> Nội Thần Kinh, đau dạ dày -> Tiêu Hóa Gan Mật, gãy xương -> Chấn Thương Chỉnh Hình).",
-        "service_name": "Tên dịch vụ (nếu có)",
-        "target_type": "DOCTOR hoặc SERVICE (dành cho BOOKING)",
         "date": "Ngày hẹn YYYY-MM-DD (dành cho BOOKING)",
         "time_slot": "Giờ hẹn (dành cho BOOKING)",
         "symptoms": "Triệu chứng (dành cho BOOKING)"

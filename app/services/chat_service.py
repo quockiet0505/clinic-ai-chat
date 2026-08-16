@@ -71,24 +71,12 @@ class ChatService:
     def _execute_booking_flow(self, state: dict, date_str: str, time_slot: str, access_token: str | None) -> str:
         target_type = state.get("target_type")
         doctor_name = state.get("doctor_name")
-        service_name = state.get("service_name")
         expertise_name = state.get("expertise_name")
         symptoms = state.get("symptoms")
 
-        target_t = (target_type or "").upper()
-        
-        if not target_t:
-            if expertise_name or doctor_name:
-                target_t = "DOCTOR"
-            elif service_name:
-                target_t = "SERVICE"
-            else:
-                return "[DIRECT_REPLY] Xin hỏi bạn muốn đặt lịch khám với Bác sĩ/Chuyên khoa hay sử dụng Dịch vụ (Xét nghiệm, Chụp X-Quang)?"
-                
-            # Cập nhật ngược lại state để session lưu lại
-            state["target_type"] = target_t
-
-        target_name = doctor_name if target_t == "DOCTOR" else service_name
+        target_t = "DOCTOR"
+        state["target_type"] = "DOCTOR"
+        target_name = doctor_name
 
         from app.clients.backend_client import BackendClient
         client = BackendClient()
@@ -139,21 +127,6 @@ class ChatService:
                     if not doctor_id:
                         state["doctor_name"] = None
                         return f"[DIRECT_REPLY] Xin lỗi, mình không tìm thấy bác sĩ '{target_name}'. Bạn vui lòng kiểm tra lại tên hoặc chọn bác sĩ khác nhé."
-                        
-            elif target_t == "SERVICE":
-                if not target_name:
-                    return "[DIRECT_REPLY] Xin hỏi bạn muốn sử dụng dịch vụ chụp chiếu hoặc xét nghiệm nào ạ?"
-                for s in client.get_services(bookable_only=True):
-                    if target_name.lower() in (s.get("serviceName") or "").lower():
-                        service_id = s.get("serviceId")
-                        break
-                if not service_id:
-                    state["service_name"] = None
-                    if state.get("target_type") == "SERVICE":
-                        state["target_type"] = None
-                    return f"[DIRECT_REPLY] Xin lỗi, mình không tìm thấy dịch vụ '{target_name}'. Bạn vui lòng chọn lại dịch vụ khác, hoặc xác nhận xem bạn muốn khám chuyên khoa/bác sĩ nhé."
-            else:
-                return "[DIRECT_REPLY] Xin vui lòng xác nhận lại bạn muốn khám bác sĩ hay sử dụng dịch vụ chụp chiếu ạ."
 
             if not date_str:
                 return "[DIRECT_REPLY] Xin vui lòng cung cấp ngày bạn muốn đi khám nhé (Lưu ý: phòng khám nghỉ ngày Chủ Nhật)."
