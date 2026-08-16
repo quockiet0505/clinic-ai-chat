@@ -176,10 +176,16 @@ def get_medical_records_tool(access_token: str | None = None) -> str:
             
         lines = ["Danh sách hồ sơ bệnh án của bạn:"]
         for r in raw_records[:5]:
-            lines.append(f"- Ngày khám: {r.get('date', 'N/A')}")
-            lines.append(f"  Bác sĩ: {r.get('doctorName', 'N/A')}")
-            lines.append(f"  Chẩn đoán: {r.get('diagnosis', 'N/A')}")
-            lines.append(f"  Ghi chú: {r.get('note', 'Không có')}")
+            date_str = r.get("createdAt", "N/A")
+            if "T" in date_str:
+                date_str = date_str.split("T")[0]
+                
+            lines.append(f"- Ngày khám: {date_str}")
+            lines.append(f"  Bác sĩ: {r.get('mainDoctorName', 'N/A')}")
+            lines.append(f"  Trạng thái: {r.get('status', 'N/A')}")
+            lines.append(f"  Chẩn đoán: {r.get('diagnosis') or 'Chưa có'}")
+            lines.append(f"  Hướng điều trị: {r.get('treatment') or 'Chưa có'}")
+            lines.append(f"  Ghi chú: {r.get('note') or 'Không có'}")
             
         return "\n".join(lines)
     except BackendClientError as e:

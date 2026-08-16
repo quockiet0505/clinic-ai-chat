@@ -107,6 +107,7 @@ class ChatService:
                             expertise_id = s.get("expertiseId")
                             break
                     if not expertise_id:
+                        state["expertise_name"] = None
                         return f"[DIRECT_REPLY] Xin lỗi, mình không tìm thấy chuyên khoa '{expertise_name}' trong hệ thống. Bạn vui lòng chọn chuyên khoa khác nhé."
                         
                 if not target_name:
@@ -136,6 +137,7 @@ class ChatService:
                                 expertise_id = d.get("expertiseId")
                             break
                     if not doctor_id:
+                        state["doctor_name"] = None
                         return f"[DIRECT_REPLY] Xin lỗi, mình không tìm thấy bác sĩ '{target_name}'. Bạn vui lòng kiểm tra lại tên hoặc chọn bác sĩ khác nhé."
                         
             elif target_t == "SERVICE":
@@ -146,7 +148,10 @@ class ChatService:
                         service_id = s.get("serviceId")
                         break
                 if not service_id:
-                    return f"[DIRECT_REPLY] Xin lỗi, mình không tìm thấy dịch vụ '{target_name}'. Bạn vui lòng chọn dịch vụ khác nhé."
+                    state["service_name"] = None
+                    if state.get("target_type") == "SERVICE":
+                        state["target_type"] = None
+                    return f"[DIRECT_REPLY] Xin lỗi, mình không tìm thấy dịch vụ '{target_name}'. Bạn vui lòng chọn lại dịch vụ khác, hoặc xác nhận xem bạn muốn khám chuyên khoa/bác sĩ nhé."
             else:
                 return "[DIRECT_REPLY] Xin vui lòng xác nhận lại bạn muốn khám bác sĩ hay sử dụng dịch vụ chụp chiếu ạ."
 
